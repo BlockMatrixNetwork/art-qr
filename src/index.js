@@ -59,10 +59,12 @@ function _drawImageWithColor(
   var tmpCtx = tmpCanvas.getContext('2d');
   tmpCanvas.width = sizeX;
   tmpCanvas.height = sizeY;
-  tmpCtx.fillStyle = context.fillStyle;
-  tmpCtx.fillRect(0, 0, sizeX, sizeY);
-  tmpCtx.globalCompositeOperation = 'destination-in';
+
   tmpCtx.drawImage(image, 0, 0, sizeX, sizeY);
+
+  tmpCtx.globalCompositeOperation = 'source-in';
+  tmpCtx.fillStyle = fillStyle;
+  tmpCtx.fillRect(0, 0, sizeX, sizeY);
 
   // Draw the temporary canvas onto the main context
   context.drawImage(tmpCanvas, positionX, positionY);
