@@ -2,6 +2,7 @@ import GIF from './myGif';
 import GIFE from 'gif.js';
 import QRCodeModel from './QRCodeModel';
 import { QRErrorCorrectLevel, QRUtil } from './constant';
+import { subQuarters } from 'date-fns';
 
 function _onMakeImage() {
   this._elImage.src = this._elCanvas.toDataURL('image/png');
@@ -42,6 +43,37 @@ function _safeSetDataURI(fSuccess, fFail) {
   } else if (self._bSupportDataURI === false && self._fFail) {
     self._fFail();
   }
+}
+
+function _drawAndRotateImage(
+  context,
+  image,
+  angleInDegress,
+  positionX,
+  positionY,
+  sizeX,
+  sizeY
+) {
+  // 110% credit to this article:
+  // http://creativejs.com/2012/01/day-10-drawing-rotated-images-into-canvas/index.html
+
+  if (angleInDegress === 0) {
+    context.drawImage(image, positionX, positionY, sizeX, sizeY);
+  }
+
+  let TO_RADIANS = Math.PI / 180;
+  let halfSizeX = sizeX / 2;
+  let halfSizeY = sizeY / 2;
+
+  context.translate(positionX, positionY);
+  context.translate(halfSizeX, halfSizeY);
+  context.rotate(angleInDegress * TO_RADIANS);
+
+  context.drawImage(image, -halfSizeX, -halfSizeY, sizeX, sizeY);
+
+  context.rotate(angleInDegress * TO_RADIANS * -1);
+  context.translate(-halfSizeX, -halfSizeY);
+  context.translate(-positionX, -positionY);
 }
 
 function Drawing(htOption) {
@@ -135,11 +167,14 @@ Drawing.prototype.draw = function(oQRCode) {
       b = ~~(b / count);
       // console.log("rgb(" + r + ", " + g + ", " + b + ")");
       _htOption.colorDark = 'rgb(' + r + ', ' + g + ', ' + b + ')';
+      _htOption.colorEyes = 'rgb(' + r + ', ' + g + ', ' + b + ')';
     }
   } else if (_htOption.backgroundImage !== undefined) {
     if (_htOption.autoColor) {
       var avgRGB = getAverageRGB(_htOption.backgroundImage);
       _htOption.colorDark =
+        'rgb(' + avgRGB.r + ', ' + avgRGB.g + ', ' + avgRGB.b + ')';
+      _htOption.colorEyes =
         'rgb(' + avgRGB.r + ', ' + avgRGB.g + ', ' + avgRGB.b + ')';
     }
 
@@ -242,7 +277,8 @@ Drawing.prototype.draw = function(oQRCode) {
             (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
             (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
             _maskCanvas,
-            bIsDark
+            bIsDark,
+            _htOption.blockStyle
           );
         }
       } else {
@@ -259,7 +295,8 @@ Drawing.prototype.draw = function(oQRCode) {
             (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
             (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
             _maskCanvas,
-            bIsDark
+            bIsDark,
+            _htOption.blockStyle
           );
         }
       }
@@ -299,29 +336,110 @@ Drawing.prototype.draw = function(oQRCode) {
     }
   }
 
-  // Draw POSITION patterns
+  // Draw alignment pattern
   _oContext.fillStyle = _htOption.colorDark;
-  _oContext.fillRect(0, 0, 7 * nSize, nSize);
-  _oContext.fillRect((nCount - 7) * nSize, 0, 7 * nSize, nSize);
-  _oContext.fillRect(0, 6 * nSize, 7 * nSize, nSize);
-  _oContext.fillRect((nCount - 7) * nSize, 6 * nSize, 7 * nSize, nSize);
-  _oContext.fillRect(0, (nCount - 7) * nSize, 7 * nSize, nSize);
-  _oContext.fillRect(0, (nCount - 7 + 6) * nSize, 7 * nSize, nSize);
-  _oContext.fillRect(0, 0, nSize, 7 * nSize);
-  _oContext.fillRect(6 * nSize, 0, nSize, 7 * nSize);
-  _oContext.fillRect((nCount - 7) * nSize, 0, nSize, 7 * nSize);
-  _oContext.fillRect((nCount - 7 + 6) * nSize, 0, nSize, 7 * nSize);
-  _oContext.fillRect(0, (nCount - 7) * nSize, nSize, 7 * nSize);
-  _oContext.fillRect(6 * nSize, (nCount - 7) * nSize, nSize, 7 * nSize);
-
-  _oContext.fillRect(2 * nSize, 2 * nSize, 3 * nSize, 3 * nSize);
-  _oContext.fillRect((nCount - 7 + 2) * nSize, 2 * nSize, 3 * nSize, 3 * nSize);
-  _oContext.fillRect(2 * nSize, (nCount - 7 + 2) * nSize, 3 * nSize, 3 * nSize);
-
-  for (let i = 0; i < nCount - 8; i += 2) {
+  for (let i = 0; i < nCount - 16; i += 2) {
     _oContext.fillRect((8 + i) * nSize, 6 * nSize, nSize, nSize);
     _oContext.fillRect(6 * nSize, (8 + i) * nSize, nSize, nSize);
   }
+
+  // Draw POSITION patterns
+  _oContext.fillStyle = _htOption.colorEyes;
+
+  // Outer eyes
+  if (_htOption.outerEyeImage === undefined) {
+    // Top left eye
+    _oContext.fillRect(0, 0, 7 * nSize, nSize);
+    _oContext.fillRect(0, 0, nSize, 7 * nSize);
+    _oContext.fillRect(6 * nSize, 0, nSize, 7 * nSize);
+    _oContext.fillRect(0, 6 * nSize, 7 * nSize, nSize);
+
+    // Bottom left eye
+    _oContext.fillRect(0, (nCount - 7) * nSize, nSize, 7 * nSize);
+    _oContext.fillRect(0, (nCount - 7) * nSize, 7 * nSize, nSize);
+    _oContext.fillRect(0, (nCount - 7 + 6) * nSize, 7 * nSize, nSize);
+    _oContext.fillRect(6 * nSize, (nCount - 7) * nSize, nSize, 7 * nSize);
+
+    // Top right eye
+    _oContext.fillRect((nCount - 7) * nSize, 6 * nSize, 7 * nSize, nSize);
+    _oContext.fillRect((nCount - 7 + 6) * nSize, 0, nSize, 7 * nSize);
+    _oContext.fillRect((nCount - 7) * nSize, 0, 7 * nSize, nSize);
+    _oContext.fillRect((nCount - 7) * nSize, 0, nSize, 7 * nSize);
+  } else {
+    _drawAndRotateImage(
+      _oContext,
+      _htOption.outerEyeImage,
+      _htOption.outerEyeTopLeftRotation,
+      0,
+      0,
+      7 * nSize,
+      7 * nSize
+    );
+    _drawAndRotateImage(
+      _oContext,
+      _htOption.outerEyeImage,
+      _htOption.outerEyeTopRightRotation,
+      (nCount - 7) * nSize,
+      0,
+      7 * nSize,
+      7 * nSize
+    );
+    _drawAndRotateImage(
+      _oContext,
+      _htOption.outerEyeImage,
+      _htOption.outerEyeBottomLeftRotation,
+      0,
+      (nCount - 7) * nSize,
+      7 * nSize,
+      7 * nSize
+    );
+  }
+
+  // inner eyes
+  if (_htOption.innerEyeImage === undefined) {
+    _oContext.fillRect(2 * nSize, 2 * nSize, 3 * nSize, 3 * nSize); // TL
+    _oContext.fillRect(
+      (nCount - 7 + 2) * nSize,
+      2 * nSize,
+      3 * nSize,
+      3 * nSize
+    ); // TR
+    _oContext.fillRect(
+      2 * nSize,
+      (nCount - 7 + 2) * nSize,
+      3 * nSize,
+      3 * nSize
+    ); // BL
+  } else {
+    _drawAndRotateImage(
+      _oContext,
+      _htOption.innerEyeImage,
+      _htOption.innerEyeTopLeftRotation,
+      2 * nSize,
+      2 * nSize,
+      3 * nSize,
+      3 * nSize
+    );
+    _drawAndRotateImage(
+      _oContext,
+      _htOption.innerEyeImage,
+      _htOption.innerEyeTopRightRotation,
+      (nCount - 7 + 2) * nSize,
+      2 * nSize,
+      3 * nSize,
+      3 * nSize
+    );
+    _drawAndRotateImage(
+      _oContext,
+      _htOption.innerEyeImage,
+      _htOption.innerEyeBottomLeftRotation,
+      2 * nSize,
+      (nCount - 7 + 2) * nSize,
+      3 * nSize,
+      3 * nSize
+    );
+  }
+
   for (let i = 0; i < agnPatternCenter.length; i++) {
     for (let j = 0; j < agnPatternCenter.length; j++) {
       let agnX = agnPatternCenter[j];
@@ -607,10 +725,20 @@ function _greyscale(r, g, b) {
   return 0.3 * r + 0.59 * b + 0.11 * b;
 }
 
-function _fillRectWithMask(canvas, x, y, w, h, maskSrc, bDark) {
+function _fillRectWithMask(canvas, x, y, w, h, maskSrc, bDark, blockStyle) {
   // console.log("maskSrc=" + maskSrc);
   if (maskSrc === undefined) {
-    canvas.fillRect(x, y, w, h);
+    if (blockStyle === undefined || blockStyle === 'square') {
+      canvas.fillRect(x, y, w, h);
+    } else if (blockStyle === 'circle') {
+      let centerX = x + w / 2;
+      let centerY = y + h / 2;
+      let radius = h / 2;
+
+      canvas.beginPath();
+      canvas.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+      canvas.fill();
+    }
   } else {
     canvas.drawImage(maskSrc, x, y, w, h, x, y, w, h);
     var fill_ = canvas.fillStyle;
@@ -670,6 +798,7 @@ AwesomeQRCode.prototype.create = function(vOption) {
     size: 800,
     margin: 20,
     typeNumber: 4,
+    colorEyes: '#000000',
     colorDark: '#000000',
     colorLight: '#ffffff',
     correctLevel: QRErrorCorrectLevel.M,
@@ -687,7 +816,19 @@ AwesomeQRCode.prototype.create = function(vOption) {
     binarizeThreshold: 128,
     gifBackground: undefined,
     callback: undefined,
-    bindElement: undefined
+    bindElement: undefined,
+
+    blockStyle: 'square',
+
+    outerEyeImage: undefined,
+    outerEyeTopLeftRotation: 0,
+    outerEyeTopRightRotation: 0,
+    outerEyeBottomLeftRotation: 0,
+
+    innerEyeImage: undefined,
+    innerEyeTopLeftRotation: 0,
+    innerEyeTopRightRotation: 0,
+    innerEyeBottomLeftRotation: 0
   };
 
   if (typeof vOption === 'string') {
