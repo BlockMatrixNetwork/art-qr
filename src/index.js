@@ -45,6 +45,29 @@ function _safeSetDataURI(fSuccess, fFail) {
   }
 }
 
+function _drawImageWithColor(
+  context,
+  image,
+  positionX,
+  positionY,
+  sizeX,
+  sizeY,
+  fillStyle
+) {
+  // Create a temporary canvas to recolour the image
+  var tmpCanvas = document.createElement('canvas');
+  var tmpCtx = tmpCanvas.getContext('2d');
+  tmpCanvas.width = sizeX;
+  tmpCanvas.height = sizeY;
+  tmpCtx.fillStyle = context.fillStyle;
+  tmpCtx.fillRect(0, 0, sizeX, sizeY);
+  tmpCtx.globalCompositeOperation = 'destination-in';
+  tmpCtx.drawImage(image, 0, 0, sizeX, sizeY);
+
+  // Draw the temporary canvas onto the main context
+  context.drawImage(tmpCanvas, positionX, positionY);
+}
+
 function _drawAndRotateImage(
   context,
   image,
@@ -52,7 +75,8 @@ function _drawAndRotateImage(
   positionX,
   positionY,
   sizeX,
-  sizeY
+  sizeY,
+  color
 ) {
   // 110% credit to this article:
   // http://creativejs.com/2012/01/day-10-drawing-rotated-images-into-canvas/index.html
@@ -69,7 +93,19 @@ function _drawAndRotateImage(
   context.translate(halfSizeX, halfSizeY);
   context.rotate(angleInDegress * TO_RADIANS);
 
-  context.drawImage(image, -halfSizeX, -halfSizeY, sizeX, sizeY);
+  if (color !== undefined) {
+    _drawImageWithColor(
+      context,
+      image,
+      -halfSizeX,
+      -halfSizeY,
+      sizeX,
+      sizeY,
+      color
+    );
+  } else {
+    context.drawImage(image, -halfSizeX, -halfSizeY, sizeX, sizeY);
+  }
 
   context.rotate(angleInDegress * TO_RADIANS * -1);
   context.translate(-halfSizeX, -halfSizeY);
@@ -344,7 +380,7 @@ Drawing.prototype.draw = function(oQRCode) {
   }
 
   // Draw POSITION patterns
-  _oContext.fillStyle = _htOption.colorEyes;
+  _oContext.fillStyle = _htOption.colorEyes || _htOption.colorDark;
 
   // Outer eyes
   if (_htOption.outerEyeImage === undefined) {
@@ -373,7 +409,8 @@ Drawing.prototype.draw = function(oQRCode) {
       0,
       0,
       7 * nSize,
-      7 * nSize
+      7 * nSize,
+      _htOption.colorEyes
     );
     _drawAndRotateImage(
       _oContext,
@@ -382,7 +419,8 @@ Drawing.prototype.draw = function(oQRCode) {
       (nCount - 7) * nSize,
       0,
       7 * nSize,
-      7 * nSize
+      7 * nSize,
+      _htOption.colorEyes
     );
     _drawAndRotateImage(
       _oContext,
@@ -391,7 +429,8 @@ Drawing.prototype.draw = function(oQRCode) {
       0,
       (nCount - 7) * nSize,
       7 * nSize,
-      7 * nSize
+      7 * nSize,
+      _htOption.colorEyes
     );
   }
 
@@ -418,7 +457,8 @@ Drawing.prototype.draw = function(oQRCode) {
       2 * nSize,
       2 * nSize,
       3 * nSize,
-      3 * nSize
+      3 * nSize,
+      _htOption.colorEyes
     );
     _drawAndRotateImage(
       _oContext,
@@ -427,7 +467,8 @@ Drawing.prototype.draw = function(oQRCode) {
       (nCount - 7 + 2) * nSize,
       2 * nSize,
       3 * nSize,
-      3 * nSize
+      3 * nSize,
+      _htOption.colorEyes
     );
     _drawAndRotateImage(
       _oContext,
@@ -436,7 +477,8 @@ Drawing.prototype.draw = function(oQRCode) {
       2 * nSize,
       (nCount - 7 + 2) * nSize,
       3 * nSize,
-      3 * nSize
+      3 * nSize,
+      _htOption.colorEyes
     );
   }
 
@@ -798,7 +840,7 @@ AwesomeQRCode.prototype.create = function(vOption) {
     size: 800,
     margin: 20,
     typeNumber: 4,
-    colorEyes: '#000000',
+    colorEyes: undefined,
     colorDark: '#000000',
     colorLight: '#ffffff',
     correctLevel: QRErrorCorrectLevel.M,
