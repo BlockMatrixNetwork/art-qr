@@ -3,12 +3,7 @@ import GIFE from 'gif.js';
 import QRCodeModel from './QRCodeModel';
 import { QRErrorCorrectLevel, QRUtil } from './constant';
 import { subQuarters } from 'date-fns';
-
-function _onMakeImage() {
-  this._elImage.src = this._elCanvas.toDataURL('image/png');
-  this._elImage.style.display = 'block';
-  this._elCanvas.style.display = 'none';
-}
+const { createCanvas, loadImage, Image } = require('canvas');
 
 function _safeSetDataURI(fSuccess, fFail) {
   var self = this;
@@ -17,7 +12,7 @@ function _safeSetDataURI(fSuccess, fFail) {
 
   // Check it just once
   if (self._bSupportDataURI === null) {
-    var el = document.createElement('img');
+    var el = new Image();
     var fOnError = function() {
       self._bSupportDataURI = false;
 
@@ -33,7 +28,6 @@ function _safeSetDataURI(fSuccess, fFail) {
       }
     };
 
-    el.onabort = fOnError;
     el.onerror = fOnError;
     el.onload = fOnSuccess;
     el.src =
@@ -55,10 +49,8 @@ function _drawImageWithColor(
   fillStyle
 ) {
   // Create a temporary canvas to recolour the image
-  var tmpCanvas = document.createElement('canvas');
+  var tmpCanvas = createCanvas(sizeX, sizeY);
   var tmpCtx = tmpCanvas.getContext('2d');
-  tmpCanvas.width = sizeX;
-  tmpCanvas.height = sizeY;
 
   tmpCtx.drawImage(image, 0, 0, sizeX, sizeY);
 
@@ -117,14 +109,10 @@ function _drawAndRotateImage(
 function Drawing(htOption) {
   this._bIsPainted = false;
   this._htOption = htOption;
-  this._elCanvas = document.createElement('canvas');
-  this._elCanvas.width = htOption.size;
-  this._elCanvas.height = htOption.size;
+  this._elCanvas = createCanvas(htOption.size, htOption.size);
   this._oContext = this._elCanvas.getContext('2d');
   this._bIsPainted = false;
-  this._elImage = document.createElement('img');
-  this._elImage.alt = 'Scan me!';
-  this._elImage.style.display = 'none';
+  this._elImage = new Image();
   this._bSupportDataURI = null;
   this._callback = htOption.callback;
   this._bindElement = htOption.bindElement;
@@ -132,8 +120,6 @@ function Drawing(htOption) {
 
 Drawing.prototype.draw = function(oQRCode) {
   var _elImage = this._elImage;
-  var _tCanvas = document.createElement('canvas');
-  var _oContext = _tCanvas.getContext('2d');
   // var _oContext = this._oContext;
   var _htOption = this._htOption;
   var nCount = oQRCode.getModuleCount();
@@ -153,11 +139,10 @@ Drawing.prototype.draw = function(oQRCode) {
   var gifBackground;
   var gifFrames;
 
-  _tCanvas.width = size;
-  _tCanvas.height = size;
+  var _tCanvas = createCanvas(size, size);
+  var _oContext = _tCanvas.getContext('2d');
 
   var dotScale = _htOption.dotScale;
-  _elImage.style.display = 'none';
   this.clear();
 
   if (dotScale <= 0 || dotScale > 1) {
@@ -168,9 +153,7 @@ Drawing.prototype.draw = function(oQRCode) {
   _oContext.save();
   _oContext.translate(margin, margin);
 
-  var _bkgCanvas = document.createElement('canvas');
-  _bkgCanvas.width = size;
-  _bkgCanvas.height = size;
+  var _bkgCanvas = createCanvas(size, size);
   var _bContext = _bkgCanvas.getContext('2d');
   var _maskCanvas;
   var _mContext;
@@ -217,9 +200,7 @@ Drawing.prototype.draw = function(oQRCode) {
     }
 
     if (_htOption.maskedDots) {
-      _maskCanvas = document.createElement('canvas');
-      _maskCanvas.width = size;
-      _maskCanvas.height = size;
+      _maskCanvas = createCanvas(size, size);
       _mContext = _maskCanvas.getContext('2d');
       /*
                  _mContext.drawImage(_htOption.backgroundImage,
@@ -599,10 +580,8 @@ Drawing.prototype.draw = function(oQRCode) {
     }
 
     // Scale the final image
-    let _fCanvas = document.createElement('canvas');
+    let _fCanvas = createCanvas(rawSize, rawSize);
     let _fContext = _fCanvas.getContext('2d');
-    _fCanvas.width = rawSize;
-    _fCanvas.height = rawSize;
     _fContext.drawImage(_tCanvas, 0, 0, rawSize, rawSize);
     this._elCanvas = _fCanvas;
 
@@ -634,7 +613,7 @@ Drawing.prototype.draw = function(oQRCode) {
     var rawBkg;
     var hRawBkg;
 
-    var patchCanvas = document.createElement('canvas');
+    var patchCanvas = createCanvas(frame.dims.width, frame.dims.height);
     var hPatchCanvas = patchCanvas.getContext('2d');
     var patchData;
 
@@ -650,10 +629,8 @@ Drawing.prototype.draw = function(oQRCode) {
       }
 
       if (rawBkg === undefined) {
-        rawBkg = document.createElement('canvas');
+        rawBkg = createCanvas(frame.dims.width, frame.dims.height);
         hRawBkg = rawBkg.getContext('2d');
-        rawBkg.width = frame.dims.width;
-        rawBkg.height = frame.dims.height;
         hRawBkg.rect(0, 0, rawBkg.width, rawBkg.height);
         hRawBkg.fillStyle = '#ffffff';
         hRawBkg.fill();
@@ -678,19 +655,15 @@ Drawing.prototype.draw = function(oQRCode) {
 
       hRawBkg.drawImage(patchCanvas, frame.dims.left, frame.dims.top);
 
-      var stdCanvas = document.createElement('canvas');
-      stdCanvas.width = size;
-      stdCanvas.height = size;
+      var stdCanvas = createCanvas(size, size);
       var hStdCanvas = stdCanvas.getContext('2d');
 
       hStdCanvas.drawImage(rawBkg, 0, 0, size, size);
       hStdCanvas.drawImage(_tCanvas, 0, 0, size, size);
 
       // Scale the final image
-      var _fCanvas = document.createElement('canvas');
+      var _fCanvas = createCanvas(rawSize, rawSize);
       var _fContext = _fCanvas.getContext('2d');
-      _fCanvas.width = rawSize;
-      _fCanvas.height = rawSize;
       _fContext.drawImage(stdCanvas, 0, 0, rawSize, rawSize);
       // console.log(_fContext);
       gifOutput.addFrame(_fContext, { copy: true, delay: frame.delay });
@@ -702,7 +675,7 @@ Drawing.prototype.draw = function(oQRCode) {
     var ref = this;
     gifOutput.on('finished', function(blob) {
       // Painting work completed
-      var r = new window.FileReader();
+      var r = new FileReader();
       r.onload = function(e) {
         var data = e.target.result;
         ref._bIsPainted = true;
@@ -729,12 +702,6 @@ Drawing.prototype.draw = function(oQRCode) {
     });
 
     gifOutput.render();
-  }
-};
-
-Drawing.prototype.makeImage = function() {
-  if (this._bIsPainted) {
-    _safeSetDataURI.call(this, _onMakeImage);
   }
 };
 
@@ -902,13 +869,6 @@ AwesomeQRCode.prototype.makeCode = function(sText) {
   this._oQRCode.addData(sText);
   this._oQRCode.make();
   this._oDrawing.draw(this._oQRCode);
-  this.makeImage();
-};
-
-AwesomeQRCode.prototype.makeImage = function() {
-  if (typeof this._oDrawing.makeImage === 'function') {
-    this._oDrawing.makeImage();
-  }
 };
 
 AwesomeQRCode.prototype.clear = function() {
@@ -938,11 +898,9 @@ function getAverageRGB(imgEl) {
     g: 0,
     b: 0
   };
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext && canvas.getContext('2d');
   let data;
-  let width;
-  let height;
+  let width = imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width;
+  let height = imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height;
   let i = -4;
   let length;
   let rgb = {
@@ -952,13 +910,12 @@ function getAverageRGB(imgEl) {
   };
   let count = 0;
 
+  const canvas = createCanvas(height, width);
+  const context = canvas.getContext && canvas.getContext('2d');
+
   if (!context) {
     return defaultRGB;
   }
-
-  height = canvas.height =
-    imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height;
-  width = canvas.width = imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width;
 
   context.drawImage(imgEl, 0, 0);
 
