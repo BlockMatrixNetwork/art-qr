@@ -2,42 +2,7 @@ import GIF from './myGif';
 import GIFE from 'gif.js';
 import QRCodeModel from './QRCodeModel';
 import { QRErrorCorrectLevel, QRUtil } from './constant';
-import { subQuarters } from 'date-fns';
-const { createCanvas, loadImage, Image } = require('canvas');
-
-function _safeSetDataURI(fSuccess, fFail) {
-  var self = this;
-  self._fFail = fFail;
-  self._fSuccess = fSuccess;
-
-  // Check it just once
-  if (self._bSupportDataURI === null) {
-    var el = new Image();
-    var fOnError = function() {
-      self._bSupportDataURI = false;
-
-      if (self._fFail) {
-        self._fFail();
-      }
-    };
-    var fOnSuccess = function() {
-      self._bSupportDataURI = true;
-
-      if (self._fSuccess) {
-        self._fSuccess();
-      }
-    };
-
-    el.onerror = fOnError;
-    el.onload = fOnSuccess;
-    el.src =
-      'data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='; // the Image contains 1px data.
-  } else if (self._bSupportDataURI === true && self._fSuccess) {
-    self._fSuccess();
-  } else if (self._bSupportDataURI === false && self._fFail) {
-    self._fFail();
-  }
-}
+const { createCanvas } = require('canvas');
 
 function _drawImageWithColor(
   context,
@@ -190,6 +155,17 @@ Drawing.prototype.draw = function(oQRCode) {
       _htOption.colorDark = 'rgb(' + r + ', ' + g + ', ' + b + ')';
       _htOption.colorEyes = 'rgb(' + r + ', ' + g + ', ' + b + ')';
     }
+  } else if (
+    typeof _htOption.backgroundImage === 'object' &&
+    _htOption.backgroundImage.from
+  ) {
+    let gradient = _oContext.createLinearGradient(0, 0, size, size);
+    gradient.addColorStop(0, _htOption.backgroundImage.from);
+    gradient.addColorStop(1, _htOption.backgroundImage.to);
+
+    _bContext.rect(0, 0, size, size);
+    _bContext.fillStyle = gradient;
+    _bContext.fill();
   } else if (_htOption.backgroundImage !== undefined) {
     if (_htOption.autoColor) {
       var avgRGB = getAverageRGB(_htOption.backgroundImage);
@@ -249,13 +225,13 @@ Drawing.prototype.draw = function(oQRCode) {
     _bContext.fill();
   }
 
-  if (_htOption.binarize) {
+  if (_htOption.binarize || true) {
     _htOption.colorDark = '#000000';
     _htOption.colorLight = '#FFFFFF';
   }
 
+  _oContext.save();
   var agnPatternCenter = QRUtil.getPatternPosition(oQRCode.typeNumber);
-
   var xyOffset = (1 - dotScale) * 0.5;
   for (let row = 0; row < nCount; row++) {
     for (let col = 0; col < nCount; col++) {
@@ -285,7 +261,7 @@ Drawing.prototype.draw = function(oQRCode) {
       _oContext.lineWidth = 0.5;
       _oContext.fillStyle = bIsDark
         ? _htOption.colorDark
-        : 'rgba(255, 255, 255, 0.6)'; // _htOption.colorLight;
+        : _htOption.colorLight;
       if (agnPatternCenter.length === 0) {
         // if align pattern list is empty, then it means that we don't need to leave room for the align patterns
         if (!bProtected) {
@@ -548,6 +524,8 @@ Drawing.prototype.draw = function(oQRCode) {
   if (gifBackground === undefined) {
     // Swap and merge the foreground and the background
     _bContext.drawImage(_tCanvas, 0, 0, size, size);
+    _oContext.beginPath();
+    _oContext.clip();
     _oContext.drawImage(_bkgCanvas, -margin, -margin, size, size);
 
     // Binarize the final image
