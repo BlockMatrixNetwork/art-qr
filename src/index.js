@@ -44,8 +44,6 @@ Drawing.prototype.draw = function(oQRCode) {
 
   var _bkgCanvas = createCanvas(size, size);
   var _bContext = _bkgCanvas.getContext('2d');
-  var _maskCanvas;
-  var _mContext;
 
   if (
     typeof _htOption.backgroundColor === 'object' &&
@@ -67,41 +65,20 @@ Drawing.prototype.draw = function(oQRCode) {
         'rgb(' + avgRGB.r + ', ' + avgRGB.g + ', ' + avgRGB.b + ')';
     }
 
-    if (_htOption.maskedDots) {
-      console.log(_htOption.maskedDots);
-      _maskCanvas = createCanvas(size, size);
-      _mContext = _maskCanvas.getContext('2d');
-      _mContext.drawImage(
-        _htOption.backgroundImage,
-        0,
-        0,
-        _htOption.backgroundImage.width,
-        _htOption.backgroundImage.height,
-        0,
-        0,
-        size,
-        size
-      );
-
-      _bContext.rect(0, 0, size, size);
-      _bContext.fillStyle = '#ffffff';
-      _bContext.fill();
-    } else {
-      _bContext.drawImage(
-        _htOption.backgroundImage,
-        0,
-        0,
-        _htOption.backgroundImage.width,
-        _htOption.backgroundImage.height,
-        0,
-        0,
-        size,
-        size
-      );
-    }
+    _bContext.drawImage(
+      _htOption.backgroundImage,
+      0,
+      0,
+      _htOption.backgroundImage.width,
+      _htOption.backgroundImage.height,
+      0,
+      0,
+      size,
+      size
+    );
   } else {
     _bContext.rect(0, 0, size, size);
-    _bContext.fillStyle = '#ffffff';
+    _bContext.fillStyle = _htOption.backgroundColor || '#ffffff';
     _bContext.fill();
   }
 
@@ -139,14 +116,12 @@ Drawing.prototype.draw = function(oQRCode) {
       if (agnPatternCenter.length === 0) {
         // if align pattern list is empty, then it means that we don't need to leave room for the align patterns
         if (!bProtected) {
-          _fillRectWithMask(
+          _fillRect(
             _oContext,
             nLeft,
             nTop,
             (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
             (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
-            _maskCanvas,
-            bIsDark,
             _htOption.blockStyle
           );
         }
@@ -157,14 +132,12 @@ Drawing.prototype.draw = function(oQRCode) {
           row < nCount - 4 &&
           row >= nCount - 4 - 5;
         if (!bProtected && !inAgnRange) {
-          _fillRectWithMask(
+          _fillRect(
             _oContext,
             nLeft,
             nTop,
             (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
             (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
-            _maskCanvas,
-            bIsDark,
             _htOption.blockStyle
           );
         }
@@ -445,25 +418,16 @@ function _prepareRoundedCornerClip(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function _fillRectWithMask(canvas, x, y, w, h, maskSrc, bDark, blockStyle) {
-  // console.log("maskSrc=" + maskSrc);
-  if (maskSrc === undefined) {
-    if (blockStyle === undefined || blockStyle === 'square') {
-      canvas.fillRect(x, y, w, h);
-    } else if (blockStyle === 'circle') {
-      let centerX = x + w / 2;
-      let centerY = y + h / 2;
-      let radius = h / 2;
-      canvas.beginPath();
-      canvas.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-      canvas.fill();
-    }
-  } else {
-    canvas.drawImage(maskSrc, x, y, w, h, x, y, w, h);
-    var fill_ = canvas.fillStyle;
-    canvas.fillStyle = bDark ? 'rgba(0, 0, 0, .5)' : 'rgba(255, 255, 255, .7)';
+function _fillRect(canvas, x, y, w, h, blockStyle) {
+  if (blockStyle === undefined || blockStyle === 'square') {
     canvas.fillRect(x, y, w, h);
-    canvas.fillStyle = fill_;
+  } else if (blockStyle === 'circle') {
+    let centerX = x + w / 2;
+    let centerY = y + h / 2;
+    let radius = h / 2;
+    canvas.beginPath();
+    canvas.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+    canvas.fill();
   }
 }
 
@@ -595,7 +559,6 @@ AwesomeQRCode.prototype.create = function(vOption) {
     logoMargin: 6,
     logoCornerRadius: 8,
     dotScale: 0.35,
-    maskedDots: false,
     autoColor: true,
     callback: undefined,
     bindElement: undefined,
