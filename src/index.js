@@ -1,5 +1,3 @@
-import GIF from './myGif';
-import GIFE from 'gif.js';
 import QRCodeModel from './QRCodeModel';
 import { QRErrorCorrectLevel, QRUtil } from './constant';
 const { createCanvas } = require('canvas');
@@ -29,8 +27,6 @@ Drawing.prototype.draw = function(oQRCode) {
   var nSize = Math.ceil(rawViewportSize / nCount);
   var viewportSize = nSize * nCount;
   var size = viewportSize + 2 * margin;
-  var gifBackground;
-  var gifFrames;
 
   var _tCanvas = createCanvas(size, size);
   var _oContext = _tCanvas.getContext('2d');
@@ -51,39 +47,7 @@ Drawing.prototype.draw = function(oQRCode) {
   var _maskCanvas;
   var _mContext;
 
-  if (_htOption.gifBackground !== undefined) {
-    var gif = new GIF(_htOption.gifBackground);
-    // console.log(_htOption.gifBackground);
-    // console.log(gif);
-    if (!gif.raw.hasImages) {
-      throw new Error('An invalid gif has been selected as the background.');
-    }
-    gifBackground = gif;
-    gifFrames = gif.decompressFrames(true);
-    // console.log(gifFrames);
-    if (_htOption.autoColor) {
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      let count = 0;
-      for (var i = 0; i < gifFrames[0].colorTable.length; i++) {
-        var c = gifFrames[0].colorTable[i];
-        if (c[0] > 200 || c[1] > 200 || c[2] > 200) continue;
-        if (c[0] === 0 && c[1] === 0 && c[2] === 0) continue;
-        count++;
-        r += c[0];
-        g += c[1];
-        b += c[2];
-      }
-
-      r = ~~(r / count);
-      g = ~~(g / count);
-      b = ~~(b / count);
-      // console.log("rgb(" + r + ", " + g + ", " + b + ")");
-      _htOption.colorDark = 'rgb(' + r + ', ' + g + ', ' + b + ')';
-      _htOption.colorEyes = 'rgb(' + r + ', ' + g + ', ' + b + ')';
-    }
-  } else if (
+  if (
     typeof _htOption.backgroundColor === 'object' &&
     _htOption.backgroundColor.from
   ) {
@@ -425,134 +389,35 @@ Drawing.prototype.draw = function(oQRCode) {
     _oContext.restore();
   }
 
-  if (gifBackground === undefined) {
-    // Swap and merge the foreground and the background
-    _bContext.drawImage(_tCanvas, 0, 0, size, size);
-    _oContext.drawImage(_bkgCanvas, -margin, -margin, size, size);
+  // Swap and merge the foreground and the background
+  _bContext.drawImage(_tCanvas, 0, 0, size, size);
+  _oContext.drawImage(_bkgCanvas, -margin, -margin, size, size);
 
-    // Scale the final image
-    let _fCanvas = createCanvas(rawSize, rawSize);
-    let _fContext = _fCanvas.getContext('2d');
-    _fContext.drawImage(_tCanvas, 0, 0, rawSize, rawSize);
-    this._elCanvas = _fCanvas;
+  // Scale the final image
+  let _fCanvas = createCanvas(rawSize, rawSize);
+  let _fContext = _fCanvas.getContext('2d');
+  _fContext.drawImage(_tCanvas, 0, 0, rawSize, rawSize);
+  this._elCanvas = _fCanvas;
 
-    // Painting work completed
-    this._bIsPainted = true;
-    if (this._callback !== undefined) {
-      this._callback(this._elCanvas.toDataURL());
+  // Painting work completed
+  this._bIsPainted = true;
+  if (this._callback !== undefined) {
+    this._callback(this._elCanvas.toDataURL());
+  }
+  if (this._bindElement !== undefined) {
+    try {
+      var el = document.getElementById(this._bindElement);
+      if (el.nodeName === 'IMG') {
+        el.src = this._elCanvas.toDataURL();
+      } else {
+        var elStyle = el.style;
+        elStyle['background-image'] = 'url(' + this._elCanvas.toDataURL() + ')';
+        elStyle['background-size'] = 'contain';
+        elStyle['background-repeat'] = 'no-repeat';
+      }
+    } catch (e) {
+      console.error(e);
     }
-    if (this._bindElement !== undefined) {
-      try {
-        var el = document.getElementById(this._bindElement);
-        if (el.nodeName === 'IMG') {
-          el.src = this._elCanvas.toDataURL();
-        } else {
-          var elStyle = el.style;
-          elStyle['background-image'] =
-            'url(' + this._elCanvas.toDataURL() + ')';
-          elStyle['background-size'] = 'contain';
-          elStyle['background-repeat'] = 'no-repeat';
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  } else {
-    var gifOutput;
-
-    // Reuse in order to apply the patch
-    var rawBkg;
-    var hRawBkg;
-
-    var patchCanvas = createCanvas(frame.dims.width, frame.dims.height);
-    var hPatchCanvas = patchCanvas.getContext('2d');
-    var patchData;
-
-    gifFrames.forEach(function(frame) {
-      // console.log(frame);
-      if (gifOutput === undefined) {
-        gifOutput = new GIFE({
-          workers: 4,
-          quality: 10,
-          width: rawSize,
-          height: rawSize
-        });
-      }
-
-      if (rawBkg === undefined) {
-        rawBkg = createCanvas(frame.dims.width, frame.dims.height);
-        hRawBkg = rawBkg.getContext('2d');
-        hRawBkg.rect(0, 0, rawBkg.width, rawBkg.height);
-        hRawBkg.fillStyle = '#ffffff';
-        hRawBkg.fill();
-        // console.log(rawBkg);
-      }
-
-      if (
-        !patchData ||
-        frame.dims.width !== patchCanvas.width ||
-        frame.dims.height !== patchCanvas.height
-      ) {
-        patchCanvas.width = frame.dims.width;
-        patchCanvas.height = frame.dims.height;
-        patchData = hPatchCanvas.createImageData(
-          frame.dims.width,
-          frame.dims.height
-        );
-      }
-
-      patchData.data.set(frame.patch);
-      hPatchCanvas.putImageData(patchData, 0, 0);
-
-      hRawBkg.drawImage(patchCanvas, frame.dims.left, frame.dims.top);
-
-      var stdCanvas = createCanvas(size, size);
-      var hStdCanvas = stdCanvas.getContext('2d');
-
-      hStdCanvas.drawImage(rawBkg, 0, 0, size, size);
-      hStdCanvas.drawImage(_tCanvas, 0, 0, size, size);
-
-      // Scale the final image
-      var _fCanvas = createCanvas(rawSize, rawSize);
-      var _fContext = _fCanvas.getContext('2d');
-      _fContext.drawImage(stdCanvas, 0, 0, rawSize, rawSize);
-      // console.log(_fContext);
-      gifOutput.addFrame(_fContext, { copy: true, delay: frame.delay });
-    });
-
-    if (gifOutput === undefined) {
-      throw new Error('No frames.');
-    }
-    var ref = this;
-    gifOutput.on('finished', function(blob) {
-      // Painting work completed
-      var r = new FileReader();
-      r.onload = function(e) {
-        var data = e.target.result;
-        ref._bIsPainted = true;
-        if (ref._callback !== undefined) {
-          ref._callback(data);
-        }
-        if (ref._bindElement !== undefined) {
-          try {
-            var el = document.getElementById(ref._bindElement);
-            if (el.nodeName === 'IMG') {
-              el.src = data;
-            } else {
-              var elStyle = el.style;
-              elStyle['background-image'] = 'url(' + data + ')';
-              elStyle['background-size'] = 'contain';
-              elStyle['background-repeat'] = 'no-repeat';
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
-      };
-      r.readAsDataURL(blob);
-    });
-
-    gifOutput.render();
   }
 };
 
@@ -581,10 +446,6 @@ function _prepareRoundedCornerClip(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
-}
-
-function _greyscale(r, g, b) {
-  return 0.3 * r + 0.59 * b + 0.11 * b;
 }
 
 function _fillRectWithMask(canvas, x, y, w, h, maskSrc, bDark, blockStyle) {
@@ -738,7 +599,6 @@ AwesomeQRCode.prototype.create = function(vOption) {
     dotScale: 0.35,
     maskedDots: false,
     autoColor: true,
-    gifBackground: undefined,
     callback: undefined,
     bindElement: undefined,
 
