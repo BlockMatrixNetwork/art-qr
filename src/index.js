@@ -144,36 +144,9 @@ Drawing.prototype.draw = function(oQRCode) {
   _oContext.fillStyle = _htOption.colorEyes || _htOption.colorDark;
   // Outer eyes
   if (_htOption.eyeImage === undefined) {
-    // Top left eye
-    // _oContext.clip();
-    // _roundRect(_oContext, 0, 0, 7 * nSize, 7 * nSize, 30, _htOption.colorDark);
-    // _roundRect(_oContext, 1 * nSize, 1 * nSize, 5 * nSize, 5 * nSize, 20, _htOption.colorLight, true);
-
-    // _roundRect(_oContext, 2 * nSize, 2 * nSize, 3 * nSize, 3 * nSize, 20, _htOption.colorDark, true);
     _drawEye(_oContext, nSize, 0, 0, '#000', '#FFF');
     _drawEye(_oContext, nSize, 0, (nCount - 7) * nSize, '#000', '#FFF');
     _drawEye(_oContext, nSize, (nCount - 7) * nSize, 0, '#000', '#FFF');
-    // _oContext.fillRect(0, 0, 7 * nSize, nSize);
-    // _oContext.fillRect(0, 0, nSize, 7 * nSize);
-    // _oContext.fillRect(6 * nSize, 0, nSize, 7 * nSize);
-    // _oContext.fillRect(0, 6 * nSize, 7 * nSize, nSize);
-    // _oContext.fillRect(2 * nSize, 2 * nSize, 3 * nSize, 3 * nSize);
-
-    // // Bottom left eye
-    // _oContext.fillRect(0, (nCount - 7) * nSize, nSize, 7 * nSize);
-    // _oContext.fillRect(0, (nCount - 7) * nSize, 7 * nSize, nSize);
-    // _oContext.fillRect(0, (nCount - 7 + 6) * nSize, 7 * nSize, nSize);
-    // _oContext.fillRect(6 * nSize, (nCount - 7) * nSize, nSize, 7 * nSize);
-    // // eslint-disable-next-line prettier/prettier
-    // _oContext.fillRect((nCount - 7 + 2) * nSize, 2 * nSize, 3 * nSize, 3 * nSize );
-
-    // // Top right eye
-    // _oContext.fillRect((nCount - 7) * nSize, 6 * nSize, 7 * nSize, nSize);
-    // _oContext.fillRect((nCount - 7 + 6) * nSize, 0, nSize, 7 * nSize);
-    // _oContext.fillRect((nCount - 7) * nSize, 0, 7 * nSize, nSize);
-    // _oContext.fillRect((nCount - 7) * nSize, 0, nSize, 7 * nSize);
-    // // eslint-disable-next-line prettier/prettier
-    // _oContext.fillRect(2 * nSize,(nCount - 7 + 2) * nSize, 3 * nSize, 3 * nSize );
   } else {
     _oContext.drawImage(_htOption.eyeImage, 0, 0, 7 * nSize, 7 * nSize);
     _oContext.drawImage(
@@ -192,28 +165,28 @@ Drawing.prototype.draw = function(oQRCode) {
     );
   }
 
-  for (let i = 0; i < agnPatternCenter.length; i++) {
-    for (let j = 0; j < agnPatternCenter.length; j++) {
-      let agnX = agnPatternCenter[j];
-      let agnY = agnPatternCenter[i];
-      if (agnX === 6 && (agnY === 6 || agnY === edgeCenter)) {
-        continue;
-      } else if (agnY === 6 && (agnX === 6 || agnX === edgeCenter)) {
-        continue;
-      } else if (
-        agnX !== 6 &&
-        agnX !== edgeCenter &&
-        agnY !== 6 &&
-        agnY !== edgeCenter
-      ) {
-        _oContext.fillStyle = 'rgba(0, 0, 0, .2)';
-        _drawAlign(_oContext, agnX, agnY, nSize, nSize);
-      } else {
-        _oContext.fillStyle = _htOption.colorDark;
-        _drawAlign(_oContext, agnX, agnY, nSize, nSize);
-      }
-    }
-  }
+  // for (let i = 0; i < agnPatternCenter.length; i++) {
+  //   for (let j = 0; j < agnPatternCenter.length; j++) {
+  //     let agnX = agnPatternCenter[j];
+  //     let agnY = agnPatternCenter[i];
+  //     if (agnX === 6 && (agnY === 6 || agnY === edgeCenter)) {
+  //       continue;
+  //     } else if (agnY === 6 && (agnX === 6 || agnX === edgeCenter)) {
+  //       continue;
+  //     } else if (
+  //       agnX !== 6 &&
+  //       agnX !== edgeCenter &&
+  //       agnY !== 6 &&
+  //       agnY !== edgeCenter
+  //     ) {
+  //       _oContext.fillStyle = 'rgba(0, 0, 0, .2)';
+  //       _drawAlign(_oContext, agnX, agnY, nSize, nSize);
+  //     } else {
+  //       _oContext.fillStyle = _htOption.colorDark;
+  //       _drawAlign(_oContext, agnX, agnY, nSize, nSize);
+  //     }
+  //   }
+  // }
 
   if (_htOption.logoImage !== undefined) {
     let logoScale = _htOption.logoScale;
@@ -425,15 +398,16 @@ function _roundRect(ctx, x, y, size, radius) {
 function _drawEye(ctx, nSize, x, y, dark, white) {
   let xe, ye, size, radius;
 
-  radius = 30;
+  radius = nSize * 2;
   xe = x;
   ye = y;
   size = nSize * 7;
+  console.log(radius, size);
   _roundRect(ctx, xe, ye, size, radius);
   ctx.fillStyle = dark;
   ctx.fill();
 
-  radius = 26;
+  radius = nSize;
   xe = x + nSize * 1;
   ye = y + nSize * 1;
   size = nSize * 5;
@@ -442,7 +416,7 @@ function _drawEye(ctx, nSize, x, y, dark, white) {
   ctx.fillStyle = white;
   ctx.fill();
 
-  radius = 26;
+  radius = nSize / 2;
   xe = x + nSize * 2;
   ye = y + nSize * 2;
   size = nSize * 3;
