@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import QRCodeModel from './QRCodeModel';
 import { QRErrorCorrectLevel, QRUtil } from './constant';
 const { createCanvas } = require('canvas');
@@ -84,7 +85,7 @@ Drawing.prototype.draw = function(oQRCode) {
         (col < 8 && (row < 8 || row >= nCount - 8)) ||
         (col >= nCount - 8 && row < 8);
 
-      var bProtected = row === 6 || col === 6 || isBlkPosCtr;
+      var bProtected = isBlkPosCtr;
 
       for (let i = 0; i < agnPatternCenter.length - 1; i++) {
         bProtected =
@@ -111,8 +112,8 @@ Drawing.prototype.draw = function(oQRCode) {
             _oContext,
             nLeft,
             nTop,
-            (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
-            (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
+            (bProtected ? 1 : dotScale) * nSize,
+            (bProtected ? 1 : dotScale) * nSize,
             _htOption.blockStyle
           );
         }
@@ -127,8 +128,8 @@ Drawing.prototype.draw = function(oQRCode) {
             _oContext,
             nLeft,
             nTop,
-            (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
-            (bProtected ? (isBlkPosCtr ? 1 : 1) : dotScale) * nSize,
+            (bProtected ? 1 : dotScale) * nSize,
+            (bProtected ? 1 : dotScale) * nSize,
             _htOption.blockStyle
           );
         }
@@ -136,146 +137,58 @@ Drawing.prototype.draw = function(oQRCode) {
     }
   }
 
-  // Draw POSITION protectors
-  var protectorStyle = 'rgba(255, 255, 255, 0.6)';
-  _oContext.fillStyle = protectorStyle;
-  _oContext.fillRect(0, 0, 8 * nSize, 8 * nSize);
-  _oContext.fillRect(0, (nCount - 8) * nSize, 8 * nSize, 8 * nSize);
-  _oContext.fillRect((nCount - 8) * nSize, 0, 8 * nSize, 8 * nSize);
-  _oContext.fillRect(8 * nSize, 6 * nSize, (nCount - 8 - 8) * nSize, nSize);
-  _oContext.fillRect(6 * nSize, 8 * nSize, nSize, (nCount - 8 - 8) * nSize);
-
   // Draw ALIGN protectors
   var edgeCenter = agnPatternCenter[agnPatternCenter.length - 1];
-  for (let i = 0; i < agnPatternCenter.length; i++) {
-    for (let j = 0; j < agnPatternCenter.length; j++) {
-      let agnX = agnPatternCenter[j];
-      let agnY = agnPatternCenter[i];
-      if (agnX === 6 && (agnY === 6 || agnY === edgeCenter)) {
-        continue;
-      } else if (agnY === 6 && (agnX === 6 || agnX === edgeCenter)) {
-        continue;
-      } else if (
-        agnX !== 6 &&
-        agnX !== edgeCenter &&
-        agnY !== 6 &&
-        agnY !== edgeCenter
-      ) {
-        _drawAlignProtector(_oContext, agnX, agnY, nSize, nSize);
-      } else {
-        _drawAlignProtector(_oContext, agnX, agnY, nSize, nSize);
-      }
-      // console.log("agnX=" + agnX + ", agnY=" + agnX);
-    }
-  }
-
-  // Draw alignment pattern
-  _oContext.fillStyle = _htOption.colorDark;
-  for (let i = 0; i < nCount - 16; i += 2) {
-    _oContext.fillRect((8 + i) * nSize, 6 * nSize, nSize, nSize);
-    _oContext.fillRect(6 * nSize, (8 + i) * nSize, nSize, nSize);
-  }
 
   // Draw POSITION patterns
   _oContext.fillStyle = _htOption.colorEyes || _htOption.colorDark;
-
   // Outer eyes
-  if (_htOption.outerEyeImage === undefined) {
+  if (_htOption.eyeImage === undefined) {
     // Top left eye
-    _oContext.fillRect(0, 0, 7 * nSize, nSize);
-    _oContext.fillRect(0, 0, nSize, 7 * nSize);
-    _oContext.fillRect(6 * nSize, 0, nSize, 7 * nSize);
-    _oContext.fillRect(0, 6 * nSize, 7 * nSize, nSize);
+    // _oContext.clip();
+    // _roundRect(_oContext, 0, 0, 7 * nSize, 7 * nSize, 30, _htOption.colorDark);
+    // _roundRect(_oContext, 1 * nSize, 1 * nSize, 5 * nSize, 5 * nSize, 20, _htOption.colorLight, true);
 
-    // Bottom left eye
-    _oContext.fillRect(0, (nCount - 7) * nSize, nSize, 7 * nSize);
-    _oContext.fillRect(0, (nCount - 7) * nSize, 7 * nSize, nSize);
-    _oContext.fillRect(0, (nCount - 7 + 6) * nSize, 7 * nSize, nSize);
-    _oContext.fillRect(6 * nSize, (nCount - 7) * nSize, nSize, 7 * nSize);
+    // _roundRect(_oContext, 2 * nSize, 2 * nSize, 3 * nSize, 3 * nSize, 20, _htOption.colorDark, true);
+    _drawEye(_oContext, nSize, 0, 0, '#000', '#FFF');
+    _drawEye(_oContext, nSize, 0, (nCount - 7) * nSize, '#000', '#FFF');
+    _drawEye(_oContext, nSize, (nCount - 7) * nSize, 0, '#000', '#FFF');
+    // _oContext.fillRect(0, 0, 7 * nSize, nSize);
+    // _oContext.fillRect(0, 0, nSize, 7 * nSize);
+    // _oContext.fillRect(6 * nSize, 0, nSize, 7 * nSize);
+    // _oContext.fillRect(0, 6 * nSize, 7 * nSize, nSize);
+    // _oContext.fillRect(2 * nSize, 2 * nSize, 3 * nSize, 3 * nSize);
 
-    // Top right eye
-    _oContext.fillRect((nCount - 7) * nSize, 6 * nSize, 7 * nSize, nSize);
-    _oContext.fillRect((nCount - 7 + 6) * nSize, 0, nSize, 7 * nSize);
-    _oContext.fillRect((nCount - 7) * nSize, 0, 7 * nSize, nSize);
-    _oContext.fillRect((nCount - 7) * nSize, 0, nSize, 7 * nSize);
+    // // Bottom left eye
+    // _oContext.fillRect(0, (nCount - 7) * nSize, nSize, 7 * nSize);
+    // _oContext.fillRect(0, (nCount - 7) * nSize, 7 * nSize, nSize);
+    // _oContext.fillRect(0, (nCount - 7 + 6) * nSize, 7 * nSize, nSize);
+    // _oContext.fillRect(6 * nSize, (nCount - 7) * nSize, nSize, 7 * nSize);
+    // // eslint-disable-next-line prettier/prettier
+    // _oContext.fillRect((nCount - 7 + 2) * nSize, 2 * nSize, 3 * nSize, 3 * nSize );
+
+    // // Top right eye
+    // _oContext.fillRect((nCount - 7) * nSize, 6 * nSize, 7 * nSize, nSize);
+    // _oContext.fillRect((nCount - 7 + 6) * nSize, 0, nSize, 7 * nSize);
+    // _oContext.fillRect((nCount - 7) * nSize, 0, 7 * nSize, nSize);
+    // _oContext.fillRect((nCount - 7) * nSize, 0, nSize, 7 * nSize);
+    // // eslint-disable-next-line prettier/prettier
+    // _oContext.fillRect(2 * nSize,(nCount - 7 + 2) * nSize, 3 * nSize, 3 * nSize );
   } else {
-    _drawAndRotateImage(
-      _oContext,
-      _htOption.outerEyeImage,
-      _htOption.outerEyeTopLeftRotation,
-      0,
-      0,
-      7 * nSize,
-      7 * nSize,
-      _htOption.colorEyes
-    );
-    _drawAndRotateImage(
-      _oContext,
-      _htOption.outerEyeImage,
-      _htOption.outerEyeTopRightRotation,
+    _oContext.drawImage(_htOption.eyeImage, 0, 0, 7 * nSize, 7 * nSize);
+    _oContext.drawImage(
+      _htOption.eyeImage,
       (nCount - 7) * nSize,
       0,
       7 * nSize,
-      7 * nSize,
-      _htOption.colorEyes
+      7 * nSize
     );
-    _drawAndRotateImage(
-      _oContext,
-      _htOption.outerEyeImage,
-      _htOption.outerEyeBottomLeftRotation,
+    _oContext.drawImage(
+      _htOption.eyeImage,
       0,
       (nCount - 7) * nSize,
       7 * nSize,
-      7 * nSize,
-      _htOption.colorEyes
-    );
-  }
-
-  // inner eyes
-  if (_htOption.innerEyeImage === undefined) {
-    _oContext.fillRect(2 * nSize, 2 * nSize, 3 * nSize, 3 * nSize); // TL
-    _oContext.fillRect(
-      (nCount - 7 + 2) * nSize,
-      2 * nSize,
-      3 * nSize,
-      3 * nSize
-    ); // TR
-    _oContext.fillRect(
-      2 * nSize,
-      (nCount - 7 + 2) * nSize,
-      3 * nSize,
-      3 * nSize
-    ); // BL
-  } else {
-    _drawAndRotateImage(
-      _oContext,
-      _htOption.innerEyeImage,
-      _htOption.innerEyeTopLeftRotation,
-      2 * nSize,
-      2 * nSize,
-      3 * nSize,
-      3 * nSize,
-      _htOption.colorEyes
-    );
-    _drawAndRotateImage(
-      _oContext,
-      _htOption.innerEyeImage,
-      _htOption.innerEyeTopRightRotation,
-      (nCount - 7 + 2) * nSize,
-      2 * nSize,
-      3 * nSize,
-      3 * nSize,
-      _htOption.colorEyes
-    );
-    _drawAndRotateImage(
-      _oContext,
-      _htOption.innerEyeImage,
-      _htOption.innerEyeBottomLeftRotation,
-      2 * nSize,
-      (nCount - 7 + 2) * nSize,
-      3 * nSize,
-      3 * nSize,
-      _htOption.colorEyes
+      7 * nSize
     );
   }
 
@@ -422,21 +335,6 @@ function _fillRect(canvas, x, y, w, h, blockStyle) {
   }
 }
 
-function _drawAlignProtector(context, centerX, centerY, nWidth, nHeight) {
-  context.clearRect(
-    (centerX - 2) * nWidth,
-    (centerY - 2) * nHeight,
-    5 * nWidth,
-    5 * nHeight
-  );
-  context.fillRect(
-    (centerX - 2) * nWidth,
-    (centerY - 2) * nHeight,
-    5 * nWidth,
-    5 * nHeight
-  );
-}
-
 function _drawAlign(context, centerX, centerY, nWidth, nHeight) {
   context.fillRect(
     (centerX - 2) * nWidth,
@@ -488,48 +386,69 @@ function _drawImageWithColor(
   context.drawImage(tmpCanvas, positionX, positionY);
 }
 
-function _drawAndRotateImage(
-  context,
-  image,
-  angleInDegress,
-  positionX,
-  positionY,
-  sizeX,
-  sizeY,
-  color
-) {
-  // 110% credit to this article:
-  // http://creativejs.com/2012/01/day-10-drawing-rotated-images-into-canvas/index.html
+/**
+ * Draws a rounded rectangle using the current state of the canvas.
+ * If you omit the last three params, it will draw a rectangle
+ * outline with a 5 pixel border radius
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Number} x The top left x coordinate
+ * @param {Number} y The top left y coordinate
+ * @param {Number} size The width of the rectangle
+ * @param {Number} [radius = 5] The corner radius; It can also be an object
+ *                 to specify different radii for corners
+ */
+function _roundRect(ctx, x, y, size, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + size - radius, y);
+  ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
+  ctx.lineTo(x + size, y + size - radius);
+  ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
+  ctx.lineTo(x + radius, y + size);
+  ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
 
-  if (angleInDegress === 0) {
-    context.drawImage(image, positionX, positionY, sizeX, sizeY);
-  }
+/**
+ * Draws a eye of qr code.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Number} nSize size of QR code dot
+ * @param {Number} x The top left x coordinate
+ * @param {Number} y The top left y coordinate
+ * @param {Number} [radius = 5] The corner radius; It can also be an object
+ *                 to specify different radii for corners
+ * @param {String | Boolean} [fill = false] Whether to fill the rectangle.
+ * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
+ */
+function _drawEye(ctx, nSize, x, y, dark, white) {
+  let xe, ye, size, radius;
 
-  let TO_RADIANS = Math.PI / 180;
-  let halfSizeX = sizeX / 2;
-  let halfSizeY = sizeY / 2;
+  radius = 30;
+  xe = x;
+  ye = y;
+  size = nSize * 7;
+  _roundRect(ctx, xe, ye, size, radius);
+  ctx.fillStyle = dark;
+  ctx.fill();
 
-  context.translate(positionX, positionY);
-  context.translate(halfSizeX, halfSizeY);
-  context.rotate(angleInDegress * TO_RADIANS);
+  radius = 26;
+  xe = x + nSize * 1;
+  ye = y + nSize * 1;
+  size = nSize * 5;
 
-  if (color !== undefined) {
-    _drawImageWithColor(
-      context,
-      image,
-      -halfSizeX,
-      -halfSizeY,
-      sizeX,
-      sizeY,
-      color
-    );
-  } else {
-    context.drawImage(image, -halfSizeX, -halfSizeY, sizeX, sizeY);
-  }
+  _roundRect(ctx, xe, ye, size, radius);
+  ctx.fillStyle = white;
+  ctx.fill();
 
-  context.rotate(angleInDegress * TO_RADIANS * -1);
-  context.translate(-halfSizeX, -halfSizeY);
-  context.translate(-positionX, -positionY);
+  radius = 26;
+  xe = x + nSize * 2;
+  ye = y + nSize * 2;
+  size = nSize * 3;
+  _roundRect(ctx, xe, ye, size, radius);
+  ctx.fillStyle = dark;
+  ctx.fill();
 }
 
 const AwesomeQRCode = function() {};
@@ -613,63 +532,6 @@ function downloadURI(uri, name) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-}
-
-function getAverageRGB(imgEl) {
-  const blockSize = 5;
-  const defaultRGB = {
-    r: 0,
-    g: 0,
-    b: 0
-  };
-  let data;
-  let width = imgEl.naturalWidth || imgEl.offsetWidth || imgEl.width;
-  let height = imgEl.naturalHeight || imgEl.offsetHeight || imgEl.height;
-  let i = -4;
-  let length;
-  let rgb = {
-    r: 0,
-    g: 0,
-    b: 0
-  };
-  let count = 0;
-
-  const canvas = createCanvas(height, width);
-  const context = canvas.getContext && canvas.getContext('2d');
-
-  if (!context) {
-    return defaultRGB;
-  }
-
-  context.drawImage(imgEl, 0, 0);
-
-  try {
-    data = context.getImageData(0, 0, width, height);
-  } catch (e) {
-    return defaultRGB;
-  }
-
-  length = data.data.length;
-
-  while ((i += blockSize * 4) < length) {
-    if (
-      data.data[i] > 200 ||
-      data.data[i + 1] > 200 ||
-      data.data[i + 2] > 200
-    ) {
-      continue;
-    }
-    ++count;
-    rgb.r += data.data[i];
-    rgb.g += data.data[i + 1];
-    rgb.b += data.data[i + 2];
-  }
-
-  rgb.r = ~~(rgb.r / count);
-  rgb.g = ~~(rgb.g / count);
-  rgb.b = ~~(rgb.b / count);
-
-  return rgb;
 }
 
 export default AwesomeQRCode;
