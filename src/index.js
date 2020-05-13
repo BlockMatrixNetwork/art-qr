@@ -141,11 +141,6 @@ Drawing.prototype.draw = function(oQRCode) {
     _bContext.fill();
   }
 
-  if (_htOption.binarize) {
-    _htOption.colorDark = '#000000';
-    _htOption.colorLight = '#FFFFFF';
-  }
-
   _oContext.save();
   var agnPatternCenter = QRUtil.getPatternPosition(oQRCode.typeNumber);
   var xyOffset = (1 - dotScale) * 0.5;
@@ -434,35 +429,6 @@ Drawing.prototype.draw = function(oQRCode) {
     // Swap and merge the foreground and the background
     _bContext.drawImage(_tCanvas, 0, 0, size, size);
     _oContext.drawImage(_bkgCanvas, -margin, -margin, size, size);
-
-    // Binarize the final image
-    if (_htOption.binarize) {
-      var pixels = _oContext.getImageData(0, 0, size, size);
-      var threshold = 128;
-      if (
-        parseInt(_htOption.binarizeThreshold) > 0 &&
-        parseInt(_htOption.binarizeThreshold) < 255
-      ) {
-        threshold = parseInt(_htOption.binarizeThreshold);
-      }
-      for (let i = 0; i < pixels.data.length; i += 4) {
-        // rgb in [0, 255]
-        var R = pixels.data[i];
-        var G = pixels.data[i + 1];
-        var B = pixels.data[i + 2];
-        var sum = _greyscale(R, G, B);
-        if (sum > threshold) {
-          pixels.data[i] = 255;
-          pixels.data[i + 1] = 255;
-          pixels.data[i + 2] = 255;
-        } else {
-          pixels.data[i] = 0;
-          pixels.data[i + 1] = 0;
-          pixels.data[i + 2] = 0;
-        }
-      }
-      _oContext.putImageData(pixels, 0, 0);
-    }
 
     // Scale the final image
     let _fCanvas = createCanvas(rawSize, rawSize);
@@ -772,8 +738,6 @@ AwesomeQRCode.prototype.create = function(vOption) {
     dotScale: 0.35,
     maskedDots: false,
     autoColor: true,
-    binarize: false,
-    binarizeThreshold: 128,
     gifBackground: undefined,
     callback: undefined,
     bindElement: undefined,
