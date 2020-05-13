@@ -26,7 +26,6 @@ Drawing.prototype.draw = function(oQRCode) {
 
   var margin = Math.ceil(rawMargin);
   var rawViewportSize = rawSize - 2 * rawMargin;
-  var backgroundDimming = _htOption.backgroundDimming;
   var nSize = Math.ceil(rawViewportSize / nCount);
   var viewportSize = nSize * nCount;
   var size = viewportSize + 2 * margin;
@@ -135,9 +134,6 @@ Drawing.prototype.draw = function(oQRCode) {
         size,
         size
       );
-      _bContext.rect(0, 0, size, size);
-      _bContext.fillStyle = backgroundDimming;
-      _bContext.fill();
     }
   } else {
     _bContext.rect(0, 0, size, size);
@@ -768,7 +764,6 @@ AwesomeQRCode.prototype.create = function(vOption) {
     colorLight: '#ffffff',
     correctLevel: QRErrorCorrectLevel.M,
     backgroundImage: undefined,
-    backgroundDimming: 'rgba(0,0,0,0)',
     backgroundColor: '#ffffff',
     logoImage: undefined,
     logoScale: 0.2,
