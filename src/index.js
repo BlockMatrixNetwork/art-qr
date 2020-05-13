@@ -4,88 +4,18 @@ import QRCodeModel from './QRCodeModel';
 import { QRErrorCorrectLevel, QRUtil } from './constant';
 const { createCanvas } = require('canvas');
 
-function _drawImageWithColor(
-  context,
-  image,
-  positionX,
-  positionY,
-  sizeX,
-  sizeY,
-  fillStyle
-) {
-  // Create a temporary canvas to recolour the image
-  var tmpCanvas = createCanvas(sizeX, sizeY);
-  var tmpCtx = tmpCanvas.getContext('2d');
-
-  tmpCtx.drawImage(image, 0, 0, sizeX, sizeY);
-
-  tmpCtx.globalCompositeOperation = 'source-in';
-  tmpCtx.fillStyle = fillStyle;
-  tmpCtx.fillRect(0, 0, sizeX, sizeY);
-
-  // Draw the temporary canvas onto the main context
-  context.drawImage(tmpCanvas, positionX, positionY);
-}
-
-function _drawAndRotateImage(
-  context,
-  image,
-  angleInDegress,
-  positionX,
-  positionY,
-  sizeX,
-  sizeY,
-  color
-) {
-  // 110% credit to this article:
-  // http://creativejs.com/2012/01/day-10-drawing-rotated-images-into-canvas/index.html
-
-  if (angleInDegress === 0) {
-    context.drawImage(image, positionX, positionY, sizeX, sizeY);
-  }
-
-  let TO_RADIANS = Math.PI / 180;
-  let halfSizeX = sizeX / 2;
-  let halfSizeY = sizeY / 2;
-
-  context.translate(positionX, positionY);
-  context.translate(halfSizeX, halfSizeY);
-  context.rotate(angleInDegress * TO_RADIANS);
-
-  if (color !== undefined) {
-    _drawImageWithColor(
-      context,
-      image,
-      -halfSizeX,
-      -halfSizeY,
-      sizeX,
-      sizeY,
-      color
-    );
-  } else {
-    context.drawImage(image, -halfSizeX, -halfSizeY, sizeX, sizeY);
-  }
-
-  context.rotate(angleInDegress * TO_RADIANS * -1);
-  context.translate(-halfSizeX, -halfSizeY);
-  context.translate(-positionX, -positionY);
-}
-
 function Drawing(htOption) {
   this._bIsPainted = false;
   this._htOption = htOption;
   this._elCanvas = createCanvas(htOption.size, htOption.size);
   this._oContext = this._elCanvas.getContext('2d');
   this._bIsPainted = false;
-  this._elImage = new Image();
   this._bSupportDataURI = null;
   this._callback = htOption.callback;
   this._bindElement = htOption.bindElement;
 }
 
 Drawing.prototype.draw = function(oQRCode) {
-  var _elImage = this._elImage;
-  // var _oContext = this._oContext;
   var _htOption = this._htOption;
   var nCount = oQRCode.getModuleCount();
   var rawSize = _htOption.size;
@@ -96,7 +26,6 @@ Drawing.prototype.draw = function(oQRCode) {
 
   var margin = Math.ceil(rawMargin);
   var rawViewportSize = rawSize - 2 * rawMargin;
-  var whiteMargin = _htOption.whiteMargin;
   var backgroundDimming = _htOption.backgroundDimming;
   var nSize = Math.ceil(rawViewportSize / nCount);
   var viewportSize = nSize * nCount;
@@ -156,12 +85,12 @@ Drawing.prototype.draw = function(oQRCode) {
       _htOption.colorEyes = 'rgb(' + r + ', ' + g + ', ' + b + ')';
     }
   } else if (
-    typeof _htOption.backgroundImage === 'object' &&
-    _htOption.backgroundImage.from
+    typeof _htOption.backgroundColor === 'object' &&
+    _htOption.backgroundColor.from
   ) {
     let gradient = _oContext.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0, _htOption.backgroundImage.from);
-    gradient.addColorStop(1, _htOption.backgroundImage.to);
+    gradient.addColorStop(0, _htOption.backgroundColor.from);
+    gradient.addColorStop(1, _htOption.backgroundColor.to);
 
     _bContext.rect(0, 0, size, size);
     _bContext.fillStyle = gradient;
@@ -176,13 +105,9 @@ Drawing.prototype.draw = function(oQRCode) {
     }
 
     if (_htOption.maskedDots) {
+      console.log(_htOption.maskedDots);
       _maskCanvas = createCanvas(size, size);
       _mContext = _maskCanvas.getContext('2d');
-      /*
-                 _mContext.drawImage(_htOption.backgroundImage,
-                 0, 0, _htOption.backgroundImage.width, _htOption.backgroundImage.height,
-                 whiteMargin ? 0 : -margin, whiteMargin ? 0 : -margin, whiteMargin ? viewportSize : size, whiteMargin ? viewportSize : size);
-                 */
       _mContext.drawImage(
         _htOption.backgroundImage,
         0,
@@ -199,11 +124,6 @@ Drawing.prototype.draw = function(oQRCode) {
       _bContext.fillStyle = '#ffffff';
       _bContext.fill();
     } else {
-      /*
-                 _bContext.drawImage(_htOption.backgroundImage,
-                 0, 0, _htOption.backgroundImage.width, _htOption.backgroundImage.height,
-                 whiteMargin ? 0 : -margin, whiteMargin ? 0 : -margin, whiteMargin ? viewportSize : size, whiteMargin ? viewportSize : size);
-                 */
       _bContext.drawImage(
         _htOption.backgroundImage,
         0,
@@ -225,7 +145,7 @@ Drawing.prototype.draw = function(oQRCode) {
     _bContext.fill();
   }
 
-  if (_htOption.binarize || true) {
+  if (_htOption.binarize) {
     _htOption.colorDark = '#000000';
     _htOption.colorLight = '#FFFFFF';
   }
@@ -283,6 +203,7 @@ Drawing.prototype.draw = function(oQRCode) {
           row < nCount - 4 &&
           row >= nCount - 4 - 5;
         if (!bProtected && !inAgnRange) {
+          _oContext.beginPath();
           _fillRectWithMask(
             _oContext,
             nLeft,
@@ -293,6 +214,7 @@ Drawing.prototype.draw = function(oQRCode) {
             bIsDark,
             _htOption.blockStyle
           );
+          _oContext.clip();
         }
       }
     }
@@ -464,15 +386,6 @@ Drawing.prototype.draw = function(oQRCode) {
     }
   }
 
-  // Fill the margin
-  if (whiteMargin) {
-    _oContext.fillStyle = '#FFFFFF';
-    _oContext.fillRect(-margin, -margin, size, margin);
-    _oContext.fillRect(-margin, viewportSize, size, margin);
-    _oContext.fillRect(viewportSize, -margin, margin, size);
-    _oContext.fillRect(-margin, -margin, margin, size);
-  }
-
   if (_htOption.logoImage !== undefined) {
     let logoScale = _htOption.logoScale;
     let logoMargin = _htOption.logoMargin;
@@ -524,8 +437,6 @@ Drawing.prototype.draw = function(oQRCode) {
   if (gifBackground === undefined) {
     // Swap and merge the foreground and the background
     _bContext.drawImage(_tCanvas, 0, 0, size, size);
-    _oContext.beginPath();
-    _oContext.clip();
     _oContext.drawImage(_bkgCanvas, -margin, -margin, size, size);
 
     // Binarize the final image
@@ -724,9 +635,7 @@ function _fillRectWithMask(canvas, x, y, w, h, maskSrc, bDark, blockStyle) {
       let centerY = y + h / 2;
       let radius = h / 2;
 
-      canvas.beginPath();
       canvas.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-      canvas.fill();
     }
   } else {
     canvas.drawImage(maskSrc, x, y, w, h, x, y, w, h);
@@ -780,6 +689,73 @@ function _drawAlign(context, centerX, centerY, nWidth, nHeight) {
   context.fillRect(centerX * nWidth, centerY * nHeight, nWidth, nHeight);
 }
 
+function _drawImageWithColor(
+  context,
+  image,
+  positionX,
+  positionY,
+  sizeX,
+  sizeY,
+  fillStyle
+) {
+  // Create a temporary canvas to recolour the image
+  var tmpCanvas = createCanvas(sizeX, sizeY);
+  var tmpCtx = tmpCanvas.getContext('2d');
+
+  tmpCtx.drawImage(image, 0, 0, sizeX, sizeY);
+
+  tmpCtx.globalCompositeOperation = 'source-in';
+  tmpCtx.fillStyle = fillStyle;
+  tmpCtx.fillRect(0, 0, sizeX, sizeY);
+
+  // Draw the temporary canvas onto the main context
+  context.drawImage(tmpCanvas, positionX, positionY);
+}
+
+function _drawAndRotateImage(
+  context,
+  image,
+  angleInDegress,
+  positionX,
+  positionY,
+  sizeX,
+  sizeY,
+  color
+) {
+  // 110% credit to this article:
+  // http://creativejs.com/2012/01/day-10-drawing-rotated-images-into-canvas/index.html
+
+  if (angleInDegress === 0) {
+    context.drawImage(image, positionX, positionY, sizeX, sizeY);
+  }
+
+  let TO_RADIANS = Math.PI / 180;
+  let halfSizeX = sizeX / 2;
+  let halfSizeY = sizeY / 2;
+
+  context.translate(positionX, positionY);
+  context.translate(halfSizeX, halfSizeY);
+  context.rotate(angleInDegress * TO_RADIANS);
+
+  if (color !== undefined) {
+    _drawImageWithColor(
+      context,
+      image,
+      -halfSizeX,
+      -halfSizeY,
+      sizeX,
+      sizeY,
+      color
+    );
+  } else {
+    context.drawImage(image, -halfSizeX, -halfSizeY, sizeX, sizeY);
+  }
+
+  context.rotate(angleInDegress * TO_RADIANS * -1);
+  context.translate(-halfSizeX, -halfSizeY);
+  context.translate(-positionX, -positionY);
+}
+
 const AwesomeQRCode = function() {};
 
 AwesomeQRCode.prototype.create = function(vOption) {
@@ -793,11 +769,11 @@ AwesomeQRCode.prototype.create = function(vOption) {
     correctLevel: QRErrorCorrectLevel.M,
     backgroundImage: undefined,
     backgroundDimming: 'rgba(0,0,0,0)',
+    backgroundColor: '#ffffff',
     logoImage: undefined,
     logoScale: 0.2,
     logoMargin: 6,
     logoCornerRadius: 8,
-    whiteMargin: true,
     dotScale: 0.35,
     maskedDots: false,
     autoColor: true,
