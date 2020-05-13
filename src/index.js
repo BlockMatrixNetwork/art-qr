@@ -43,39 +43,6 @@ Drawing.prototype.draw = function(oQRCode) {
   _oContext.save();
   _oContext.translate(margin, margin);
 
-  var _bkgCanvas = createCanvas(size, size);
-  var _bContext = _bkgCanvas.getContext('2d');
-
-  if (
-    typeof _htOption.backgroundColor === 'object' &&
-    _htOption.backgroundColor.from
-  ) {
-    let gradient = _oContext.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0, _htOption.backgroundColor.from);
-    gradient.addColorStop(1, _htOption.backgroundColor.to);
-
-    _bContext.rect(0, 0, size, size);
-    _bContext.fillStyle = gradient;
-    _bContext.fill();
-  } else if (_htOption.backgroundImage !== undefined) {
-    _bContext.drawImage(
-      _htOption.backgroundImage,
-      0,
-      0,
-      _htOption.backgroundImage.width,
-      _htOption.backgroundImage.height,
-      0,
-      0,
-      size,
-      size
-    );
-  } else {
-    _bContext.rect(0, 0, size, size);
-    _bContext.fillStyle = _htOption.backgroundColor || '#ffffff';
-    _bContext.fill();
-  }
-
-  var agnPatternCenter = QRUtil.getPatternPosition(oQRCode.typeNumber);
   var xyOffset = (1 - dotScale) * 0.5;
   for (let row = 0; row < nCount; row++) {
     for (let col = 0; col < nCount; col++) {
@@ -87,15 +54,6 @@ Drawing.prototype.draw = function(oQRCode) {
 
       var bProtected = isBlkPosCtr;
 
-      for (let i = 0; i < agnPatternCenter.length - 1; i++) {
-        bProtected =
-          bProtected ||
-          (row >= agnPatternCenter[i] - 2 &&
-            row <= agnPatternCenter[i] + 2 &&
-            col >= agnPatternCenter[i] - 2 &&
-            col <= agnPatternCenter[i] + 2);
-      }
-
       let nLeft = col * nSize + (bProtected ? 0 : xyOffset * nSize);
       let nTop = row * nSize + (bProtected ? 0 : xyOffset * nSize);
       _oContext.strokeStyle = bIsDark
@@ -105,40 +63,18 @@ Drawing.prototype.draw = function(oQRCode) {
       _oContext.fillStyle = bIsDark
         ? _htOption.colorDark
         : _htOption.colorLight;
-      if (agnPatternCenter.length === 0) {
-        // if align pattern list is empty, then it means that we don't need to leave room for the align patterns
-        if (!bProtected) {
-          _fillRect(
-            _oContext,
-            nLeft,
-            nTop,
-            (bProtected ? 1 : dotScale) * nSize,
-            (bProtected ? 1 : dotScale) * nSize,
-            _htOption.blockStyle
-          );
-        }
-      } else {
-        var inAgnRange =
-          col < nCount - 4 &&
-          col >= nCount - 4 - 5 &&
-          row < nCount - 4 &&
-          row >= nCount - 4 - 5;
-        if (!bProtected && !inAgnRange) {
-          _fillRect(
-            _oContext,
-            nLeft,
-            nTop,
-            (bProtected ? 1 : dotScale) * nSize,
-            (bProtected ? 1 : dotScale) * nSize,
-            _htOption.blockStyle
-          );
-        }
+      if (!bProtected) {
+        _fillRect(
+          _oContext,
+          nLeft,
+          nTop,
+          (bProtected ? 1 : dotScale) * nSize,
+          (bProtected ? 1 : dotScale) * nSize,
+          _htOption.blockStyle
+        );
       }
     }
   }
-
-  // Draw ALIGN protectors
-  var edgeCenter = agnPatternCenter[agnPatternCenter.length - 1];
 
   // Draw POSITION patterns
   _oContext.fillStyle = _htOption.colorEyes || _htOption.colorDark;
@@ -165,29 +101,45 @@ Drawing.prototype.draw = function(oQRCode) {
     );
   }
 
-  // for (let i = 0; i < agnPatternCenter.length; i++) {
-  //   for (let j = 0; j < agnPatternCenter.length; j++) {
-  //     let agnX = agnPatternCenter[j];
-  //     let agnY = agnPatternCenter[i];
-  //     if (agnX === 6 && (agnY === 6 || agnY === edgeCenter)) {
-  //       continue;
-  //     } else if (agnY === 6 && (agnX === 6 || agnX === edgeCenter)) {
-  //       continue;
-  //     } else if (
-  //       agnX !== 6 &&
-  //       agnX !== edgeCenter &&
-  //       agnY !== 6 &&
-  //       agnY !== edgeCenter
-  //     ) {
-  //       _oContext.fillStyle = 'rgba(0, 0, 0, .2)';
-  //       _drawAlign(_oContext, agnX, agnY, nSize, nSize);
-  //     } else {
-  //       _oContext.fillStyle = _htOption.colorDark;
-  //       _drawAlign(_oContext, agnX, agnY, nSize, nSize);
-  //     }
-  //   }
-  // }
+  // Drawing background
+  var _bkgCanvas = createCanvas(size, size);
+  var _bContext = _bkgCanvas.getContext('2d');
+  //Adding already drawing screen as clip path
+  if (
+    typeof _htOption.backgroundColor === 'object' &&
+    _htOption.backgroundColor.from
+  ) {
+    let gradient = _oContext.createLinearGradient(0, 0, size, size);
+    gradient.addColorStop(0.1239, '#4F5BD5');
+    gradient.addColorStop(0.4203, '#962FBF');
+    gradient.addColorStop(0.6934, '#D62976');
+    gradient.addColorStop(0.9549, '#FA7E1E');
 
+    _bContext.rect(0, 0, size, size);
+    _bContext.fillStyle = gradient;
+    _bContext.fill();
+  } else if (_htOption.backgroundImage !== undefined) {
+    _bContext.drawImage(
+      _htOption.backgroundImage,
+      0,
+      0,
+      _htOption.backgroundImage.width,
+      _htOption.backgroundImage.height,
+      0,
+      0,
+      size,
+      size
+    );
+  } else {
+    _bContext.rect(0, 0, size, size);
+    _bContext.fillStyle = _htOption.backgroundColor || '#ffffff';
+    _bContext.fill();
+  }
+
+  _bContext.globalCompositeOperation = 'destination-in';
+  _bContext.drawImage(_tCanvas, 0, 0, rawSize, rawSize);
+
+  // Drawing logo
   if (_htOption.logoImage !== undefined) {
     let logoScale = _htOption.logoScale;
     let logoMargin = _htOption.logoMargin;
@@ -202,49 +154,45 @@ Drawing.prototype.draw = function(oQRCode) {
       logoCornerRadius = 0;
     }
 
-    _oContext.restore();
+    _bContext.restore();
 
     let logoSize = viewportSize * logoScale;
     let x = 0.5 * (size - logoSize);
     let y = x;
 
-    _oContext.fillStyle = '#FFFFFF';
-    _oContext.save();
+    _bContext.fillStyle = '#FFFFFF';
+    _bContext.save();
     _prepareRoundedCornerClip(
-      _oContext,
+      _bContext,
       x - logoMargin,
       y - logoMargin,
       logoSize + 2 * logoMargin,
       logoSize + 2 * logoMargin,
       logoCornerRadius
     );
-    _oContext.clip();
-    _oContext.fill();
-    _oContext.restore();
+    _bContext.clip();
+    _bContext.fill();
+    _bContext.restore();
 
-    _oContext.save();
+    _bContext.save();
     _prepareRoundedCornerClip(
-      _oContext,
+      _bContext,
       x,
       y,
       logoSize,
       logoSize,
       logoCornerRadius
     );
-    _oContext.clip();
-    _oContext.drawImage(_htOption.logoImage, x, y, logoSize, logoSize);
-    _oContext.restore();
+    _bContext.clip();
+    _bContext.drawImage(_htOption.logoImage, x, y, logoSize, logoSize);
+    _bContext.restore();
   }
-
-  // Swap and merge the foreground and the background
-  _bContext.drawImage(_tCanvas, 0, 0, size, size);
-  _oContext.drawImage(_bkgCanvas, -margin, -margin, size, size);
 
   // Scale the final image
   let _fCanvas = createCanvas(rawSize, rawSize);
   let _fContext = _fCanvas.getContext('2d');
-  _fContext.drawImage(_tCanvas, 0, 0, rawSize, rawSize);
-  this._elCanvas = _fCanvas;
+  _fContext.drawImage(_bkgCanvas, 0, 0, rawSize, rawSize);
+  this._elCanvas = _bkgCanvas;
 
   // Painting work completed
   this._bIsPainted = true;
@@ -308,57 +256,6 @@ function _fillRect(canvas, x, y, w, h, blockStyle) {
   }
 }
 
-function _drawAlign(context, centerX, centerY, nWidth, nHeight) {
-  context.fillRect(
-    (centerX - 2) * nWidth,
-    (centerY - 2) * nHeight,
-    nWidth,
-    4 * nHeight
-  );
-  context.fillRect(
-    (centerX + 2) * nWidth,
-    (centerY - 2 + 1) * nHeight,
-    nWidth,
-    4 * nHeight
-  );
-  context.fillRect(
-    (centerX - 2 + 1) * nWidth,
-    (centerY - 2) * nHeight,
-    4 * nWidth,
-    nHeight
-  );
-  context.fillRect(
-    (centerX - 2) * nWidth,
-    (centerY + 2) * nHeight,
-    4 * nWidth,
-    nHeight
-  );
-  context.fillRect(centerX * nWidth, centerY * nHeight, nWidth, nHeight);
-}
-
-function _drawImageWithColor(
-  context,
-  image,
-  positionX,
-  positionY,
-  sizeX,
-  sizeY,
-  fillStyle
-) {
-  // Create a temporary canvas to recolour the image
-  var tmpCanvas = createCanvas(sizeX, sizeY);
-  var tmpCtx = tmpCanvas.getContext('2d');
-
-  tmpCtx.drawImage(image, 0, 0, sizeX, sizeY);
-
-  tmpCtx.globalCompositeOperation = 'source-in';
-  tmpCtx.fillStyle = fillStyle;
-  tmpCtx.fillRect(0, 0, sizeX, sizeY);
-
-  // Draw the temporary canvas onto the main context
-  context.drawImage(tmpCanvas, positionX, positionY);
-}
-
 /**
  * Draws a rounded rectangle using the current state of the canvas.
  * If you omit the last three params, it will draw a rectangle
@@ -390,19 +287,18 @@ function _roundRect(ctx, x, y, size, radius) {
  * @param {Number} nSize size of QR code dot
  * @param {Number} x The top left x coordinate
  * @param {Number} y The top left y coordinate
- * @param {Number} [radius = 5] The corner radius; It can also be an object
- *                 to specify different radii for corners
- * @param {String | Boolean} [fill = false] Whether to fill the rectangle.
- * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
+ * @param {String} [dark] Whether to color fill of rectangle.
+ * @param {String} [white] Whether to color white of rectangle.
  */
 function _drawEye(ctx, nSize, x, y, dark, white) {
   let xe, ye, size, radius;
+  ctx.save();
 
+  ctx.globalCompositeOperation = 'xor';
   radius = nSize * 2;
   xe = x;
   ye = y;
   size = nSize * 7;
-  console.log(radius, size);
   _roundRect(ctx, xe, ye, size, radius);
   ctx.fillStyle = dark;
   ctx.fill();
@@ -413,9 +309,10 @@ function _drawEye(ctx, nSize, x, y, dark, white) {
   size = nSize * 5;
 
   _roundRect(ctx, xe, ye, size, radius);
-  ctx.fillStyle = white;
+  ctx.fillStyle = '#FFF';
   ctx.fill();
 
+  ctx.restore();
   radius = nSize / 2;
   xe = x + nSize * 2;
   ye = y + nSize * 2;
@@ -423,6 +320,8 @@ function _drawEye(ctx, nSize, x, y, dark, white) {
   _roundRect(ctx, xe, ye, size, radius);
   ctx.fillStyle = dark;
   ctx.fill();
+
+  ctx.restore();
 }
 
 const AwesomeQRCode = function() {};
