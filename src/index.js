@@ -105,7 +105,6 @@ Drawing.prototype.draw = function(oQRCode) {
     _bContext.fill();
   }
 
-  _oContext.save();
   var agnPatternCenter = QRUtil.getPatternPosition(oQRCode.typeNumber);
   var xyOffset = (1 - dotScale) * 0.5;
   for (let row = 0; row < nCount; row++) {
@@ -158,7 +157,6 @@ Drawing.prototype.draw = function(oQRCode) {
           row < nCount - 4 &&
           row >= nCount - 4 - 5;
         if (!bProtected && !inAgnRange) {
-          _oContext.beginPath();
           _fillRectWithMask(
             _oContext,
             nLeft,
@@ -169,7 +167,6 @@ Drawing.prototype.draw = function(oQRCode) {
             bIsDark,
             _htOption.blockStyle
           );
-          _oContext.clip();
         }
       }
     }
@@ -457,8 +454,9 @@ function _fillRectWithMask(canvas, x, y, w, h, maskSrc, bDark, blockStyle) {
       let centerX = x + w / 2;
       let centerY = y + h / 2;
       let radius = h / 2;
-
+      canvas.beginPath();
       canvas.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+      canvas.fill();
     }
   } else {
     canvas.drawImage(maskSrc, x, y, w, h, x, y, w, h);
