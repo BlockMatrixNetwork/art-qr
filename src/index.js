@@ -57,14 +57,6 @@ Drawing.prototype.draw = function(oQRCode) {
     _bContext.fillStyle = gradient;
     _bContext.fill();
   } else if (_htOption.backgroundImage !== undefined) {
-    if (_htOption.autoColor) {
-      var avgRGB = getAverageRGB(_htOption.backgroundImage);
-      _htOption.colorDark =
-        'rgb(' + avgRGB.r + ', ' + avgRGB.g + ', ' + avgRGB.b + ')';
-      _htOption.colorEyes =
-        'rgb(' + avgRGB.r + ', ' + avgRGB.g + ', ' + avgRGB.b + ')';
-    }
-
     _bContext.drawImage(
       _htOption.backgroundImage,
       0,
@@ -88,7 +80,6 @@ Drawing.prototype.draw = function(oQRCode) {
     for (let col = 0; col < nCount; col++) {
       var bIsDark = oQRCode.isDark(row, col);
 
-      // var isBlkPosCtr = ((col < 8 && (row < 8 || row >= nCount - 8)) || (col >= nCount - 8 && row < 8) || (col < nCount - 4 && col >= nCount - 4 - 5 && row < nCount - 4 && row >= nCount - 4 - 5));
       var isBlkPosCtr =
         (col < 8 && (row < 8 || row >= nCount - 8)) ||
         (col >= nCount - 8 && row < 8);
@@ -559,7 +550,6 @@ AwesomeQRCode.prototype.create = function(vOption) {
     logoMargin: 6,
     logoCornerRadius: 8,
     dotScale: 0.35,
-    autoColor: true,
     callback: undefined,
     bindElement: undefined,
 
