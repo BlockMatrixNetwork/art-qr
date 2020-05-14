@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import QRCodeModel from './QRCodeModel';
-import { QRErrorCorrectLevel, QRUtil } from './constant';
+import { QRErrorCorrectLevel } from './constant';
 const { createCanvas } = require('canvas');
 
 function Drawing(htOption) {
@@ -25,9 +25,11 @@ Drawing.prototype.draw = function(oQRCode) {
 
   var margin = Math.ceil(rawMargin);
   var rawViewportSize = rawSize - 2 * rawMargin;
-  var nSize = Math.ceil(rawViewportSize / nCount);
+  console.log(rawViewportSize, rawSize, rawMargin);
+  var nSize = Math.ceil(rawViewportSize / (nCount + 1));
   var viewportSize = nSize * nCount;
   var size = viewportSize + 2 * margin;
+  console.log(rawViewportSize, rawSize, rawMargin);
 
   var _tCanvas = createCanvas(size, size);
   var _oContext = _tCanvas.getContext('2d');
@@ -47,6 +49,7 @@ Drawing.prototype.draw = function(oQRCode) {
   for (let row = 0; row < nCount; row++) {
     for (let col = 0; col < nCount; col++) {
       var bIsDark = oQRCode.isDark(row, col);
+      if (!bIsDark) continue;
 
       var isBlkPosCtr =
         (col < 8 && (row < 8 || row >= nCount - 8)) ||
@@ -56,6 +59,7 @@ Drawing.prototype.draw = function(oQRCode) {
 
       let nLeft = col * nSize + (bProtected ? 0 : xyOffset * nSize);
       let nTop = row * nSize + (bProtected ? 0 : xyOffset * nSize);
+      console.log(nLeft);
       _oContext.strokeStyle = bIsDark
         ? _htOption.colorDark
         : _htOption.colorLight;
@@ -104,16 +108,16 @@ Drawing.prototype.draw = function(oQRCode) {
   // Drawing background
   var _bkgCanvas = createCanvas(size, size);
   var _bContext = _bkgCanvas.getContext('2d');
-  //Adding already drawing screen as clip path
+  // Adding already drawing screen as clip path
   if (
     typeof _htOption.backgroundColor === 'object' &&
-    _htOption.backgroundColor.from
+    _htOption.backgroundColor.type
   ) {
     let gradient = _oContext.createLinearGradient(0, 0, size, size);
-    gradient.addColorStop(0.1239, '#4F5BD5');
-    gradient.addColorStop(0.4203, '#962FBF');
-    gradient.addColorStop(0.6934, '#D62976');
-    gradient.addColorStop(0.9549, '#FA7E1E');
+    const bgC = _htOption.backgroundColor;
+    for (let i = 0, l = bgC.colors.length; i < l; i++) {
+      gradient.addColorStop(bgC.stops[i] / 100, bgC.colors[i]);
+    }
 
     _bContext.rect(0, 0, size, size);
     _bContext.fillStyle = gradient;
@@ -137,7 +141,9 @@ Drawing.prototype.draw = function(oQRCode) {
   }
 
   _bContext.globalCompositeOperation = 'destination-in';
+  _bContext.fillStyle = '#FFFFFF';
   _bContext.drawImage(_tCanvas, 0, 0, rawSize, rawSize);
+  _bContext.globalCompositeOperation = 'source-over';
 
   // Drawing logo
   if (_htOption.logoImage !== undefined) {
@@ -153,15 +159,14 @@ Drawing.prototype.draw = function(oQRCode) {
     if (logoCornerRadius < 0) {
       logoCornerRadius = 0;
     }
-
-    _bContext.restore();
+    _bContext.save();
 
     let logoSize = viewportSize * logoScale;
     let x = 0.5 * (size - logoSize);
     let y = x;
+    logoCornerRadius = logoSize / 2;
 
     _bContext.fillStyle = '#FFFFFF';
-    _bContext.save();
     _prepareRoundedCornerClip(
       _bContext,
       x - logoMargin,
@@ -172,9 +177,6 @@ Drawing.prototype.draw = function(oQRCode) {
     );
     _bContext.clip();
     _bContext.fill();
-    _bContext.restore();
-
-    _bContext.save();
     _prepareRoundedCornerClip(
       _bContext,
       x,
@@ -187,6 +189,15 @@ Drawing.prototype.draw = function(oQRCode) {
     _bContext.drawImage(_htOption.logoImage, x, y, logoSize, logoSize);
     _bContext.restore();
   }
+
+  // Fill background to white
+  _bContext.restore();
+  _bContext.globalCompositeOperation = 'destination-over';
+  _bContext.rect(0, 0, size, size);
+  _bContext.fillStyle = '#FFFFFF';
+  _bContext.fill();
+
+  _bContext.restore();
 
   // Scale the final image
   let _fCanvas = createCanvas(rawSize, rawSize);
@@ -293,7 +304,6 @@ function _roundRect(ctx, x, y, size, radius) {
 function _drawEye(ctx, nSize, x, y, dark, white) {
   let xe, ye, size, radius;
   ctx.save();
-
   ctx.globalCompositeOperation = 'xor';
   radius = nSize * 2;
   xe = x;
@@ -309,7 +319,7 @@ function _drawEye(ctx, nSize, x, y, dark, white) {
   size = nSize * 5;
 
   _roundRect(ctx, xe, ye, size, radius);
-  ctx.fillStyle = '#FFF';
+  ctx.fillStyle = white;
   ctx.fill();
 
   ctx.restore();
@@ -320,15 +330,13 @@ function _drawEye(ctx, nSize, x, y, dark, white) {
   _roundRect(ctx, xe, ye, size, radius);
   ctx.fillStyle = dark;
   ctx.fill();
-
-  ctx.restore();
 }
 
 const AwesomeQRCode = function() {};
 
 AwesomeQRCode.prototype.create = function(vOption) {
   this._htOption = {
-    size: 800,
+    size: 320,
     margin: 20,
     typeNumber: 4,
     colorEyes: undefined,
@@ -339,8 +347,7 @@ AwesomeQRCode.prototype.create = function(vOption) {
     backgroundColor: '#ffffff',
     logoImage: undefined,
     logoScale: 0.2,
-    logoMargin: 6,
-    logoCornerRadius: 8,
+    logoMargin: 5,
     dotScale: 0.35,
     callback: undefined,
     bindElement: undefined,
@@ -393,7 +400,7 @@ AwesomeQRCode.prototype.clear = function() {
 
 AwesomeQRCode.prototype.download = function() {
   const canvas = this._oDrawing._elCanvas;
-  downloadURI(canvas.toDataURL(), 'qrcode.png');
+  downloadURI(canvas.toDataURL(), 'qr-code.png');
 };
 
 AwesomeQRCode.CorrectLevel = QRErrorCorrectLevel;
