@@ -44,16 +44,39 @@ Drawing.prototype.draw = function(oQRCode) {
   _oContext.translate(margin, margin);
 
   var xyOffset = (1 - dotScale) * 0.5;
+  let logoSize = 0;
+  let logoX = 0;
+  if (_htOption.logoImage !== undefined) {
+    let logoScale = _htOption.logoScale;
+    let logoMargin = _htOption.logoMargin;
+    if (logoScale <= 0 || logoScale >= 1.0) {
+      logoScale = 0.2;
+    }
+    if (logoMargin < 0) {
+      logoMargin = 0;
+    }
+
+    logoSize = viewportSize * logoScale;
+    logoX = 0.5 * (size - logoSize);
+  }
   for (let row = 0; row < nCount; row++) {
     for (let col = 0; col < nCount; col++) {
-      var bIsDark = oQRCode.isDark(row, col);
+      let bIsDark = oQRCode.isDark(row, col);
       if (!bIsDark) continue;
 
-      var isBlkPosCtr =
+      let isBlkPosCtr =
         (col < 8 && (row < 8 || row >= nCount - 8)) ||
         (col >= nCount - 8 && row < 8);
 
-      var bProtected = isBlkPosCtr;
+      let isImgOvr = false;
+      if (_htOption.logoImage) {
+        isImgOvr =
+          nSize * (col + 1) > logoX - nSize &&
+          nSize * (col + 1) < logoX + logoSize + nSize &&
+          (nSize * (row + 1) > logoX - nSize &&
+            nSize * (row + 1) < logoX + logoSize + nSize);
+      }
+      let bProtected = isBlkPosCtr || isImgOvr;
 
       let nLeft = col * nSize + (bProtected ? 0 : xyOffset * nSize);
       let nTop = row * nSize + (bProtected ? 0 : xyOffset * nSize);
@@ -190,7 +213,6 @@ Drawing.prototype.draw = function(oQRCode) {
       const serviceSize = logoSize * 0.35;
       const serviceMargin = serviceSize * 0.12;
 
-      _bContext.globalCompositeOperation = 'destination-over';
       _roundRect(
         _bContext,
         x + logoSize - logoMargin - serviceSize,
@@ -200,7 +222,7 @@ Drawing.prototype.draw = function(oQRCode) {
       );
       _bContext.fillStyle = '#FFFFFF';
       _bContext.fill();
-      _bContext.globalCompositeOperation = 'source-over';
+
       _roundRect(
         _bContext,
         x + logoSize - logoMargin - serviceSize + serviceMargin,
