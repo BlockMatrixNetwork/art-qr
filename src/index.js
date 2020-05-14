@@ -25,11 +25,9 @@ Drawing.prototype.draw = function(oQRCode) {
 
   var margin = Math.ceil(rawMargin);
   var rawViewportSize = rawSize - 2 * rawMargin;
-  console.log(rawViewportSize, rawSize, rawMargin);
   var nSize = Math.ceil(rawViewportSize / (nCount + 1));
   var viewportSize = nSize * nCount;
   var size = viewportSize + 2 * margin;
-  console.log(rawViewportSize, rawSize, rawMargin);
 
   var _tCanvas = createCanvas(size, size);
   var _oContext = _tCanvas.getContext('2d');
@@ -59,7 +57,6 @@ Drawing.prototype.draw = function(oQRCode) {
 
       let nLeft = col * nSize + (bProtected ? 0 : xyOffset * nSize);
       let nTop = row * nSize + (bProtected ? 0 : xyOffset * nSize);
-      console.log(nLeft);
       _oContext.strokeStyle = bIsDark
         ? _htOption.colorDark
         : _htOption.colorLight;
@@ -161,12 +158,11 @@ Drawing.prototype.draw = function(oQRCode) {
     }
     _bContext.save();
 
-    let logoSize = viewportSize * logoScale;
-    let x = 0.5 * (size - logoSize);
-    let y = x;
+    const logoSize = viewportSize * logoScale;
+    const x = 0.5 * (size - logoSize);
+    const y = x;
     logoCornerRadius = logoSize / 2;
 
-    _bContext.fillStyle = '#FFFFFF';
     _prepareRoundedCornerClip(
       _bContext,
       x - logoMargin,
@@ -176,6 +172,7 @@ Drawing.prototype.draw = function(oQRCode) {
       logoCornerRadius
     );
     _bContext.clip();
+    _bContext.fillStyle = '#FFFFFF';
     _bContext.fill();
     _prepareRoundedCornerClip(
       _bContext,
@@ -188,12 +185,45 @@ Drawing.prototype.draw = function(oQRCode) {
     _bContext.clip();
     _bContext.drawImage(_htOption.logoImage, x, y, logoSize, logoSize);
     _bContext.restore();
+    if (_htOption.logoService) {
+      _bContext.save();
+      const serviceSize = logoSize * 0.35;
+      const serviceMargin = serviceSize * 0.12;
+
+      _bContext.globalCompositeOperation = 'destination-over';
+      _roundRect(
+        _bContext,
+        x + logoSize - logoMargin - serviceSize,
+        y + logoSize - logoMargin - serviceSize,
+        serviceSize + serviceMargin * 2,
+        serviceSize / 2 + serviceMargin * 2
+      );
+      _bContext.fillStyle = '#FFFFFF';
+      _bContext.fill();
+      _bContext.globalCompositeOperation = 'source-over';
+      _roundRect(
+        _bContext,
+        x + logoSize - logoMargin - serviceSize + serviceMargin,
+        y + logoSize - logoMargin - serviceSize + serviceMargin,
+        serviceSize,
+        serviceSize / 2 + serviceMargin
+      );
+      _bContext.clip();
+      _bContext.drawImage(
+        _htOption.logoService,
+        x + logoSize - logoMargin - serviceSize + serviceMargin,
+        y + logoSize - logoMargin - serviceSize + serviceMargin,
+        serviceSize,
+        serviceSize
+      );
+      _bContext.restore();
+    }
   }
 
   // Fill background to white
   _bContext.restore();
   _bContext.globalCompositeOperation = 'destination-over';
-  _bContext.rect(0, 0, size, size);
+  _roundRect(_bContext, 0, 0, size, 15);
   _bContext.fillStyle = '#FFFFFF';
   _bContext.fill();
 
@@ -348,6 +378,7 @@ AwesomeQRCode.prototype.create = function(vOption) {
     logoImage: undefined,
     logoScale: 0.2,
     logoMargin: 5,
+    logoService: false,
     dotScale: 0.35,
     callback: undefined,
     bindElement: undefined,
