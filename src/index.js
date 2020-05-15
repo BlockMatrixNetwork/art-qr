@@ -2,7 +2,7 @@
 import QRCodeModel from './QRCodeModel';
 import { QRErrorCorrectLevel } from './constant';
 import CanvasDraw from './canvasDraw';
-import SvgDraw from './svgDraw';
+import { SVG } from '@svgdotjs/svg.js';
 
 const AwesomeQRCode = function() {};
 
@@ -37,7 +37,8 @@ AwesomeQRCode.prototype.create = function(vOption) {
     innerEyeTopRightRotation: 0,
     innerEyeBottomLeftRotation: 0
   };
-
+  let svg = SVG();
+  console.log(svg);
   if (typeof vOption === 'string') {
     vOption = {
       text: vOption
@@ -57,7 +58,7 @@ AwesomeQRCode.prototype.create = function(vOption) {
       this.DrawClass = CanvasDraw;
       break;
     default:
-      this.DrawClass = SvgDraw;
+      this.DrawClass = CanvasDraw;
       break;
   }
   this._oDrawing = new this.DrawClass(this._htOption);

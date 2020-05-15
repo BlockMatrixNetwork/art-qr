@@ -1,4 +1,4 @@
-const { createCanvas } = require('canvas');
+import { SVG } from '@svgdotjs/svg.js';
 
 function _prepareRoundedCornerClip(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -91,8 +91,8 @@ function _drawEye(ctx, nSize, x, y, dark, white) {
 function Drawing(htOption) {
   this._bIsPainted = false;
   this._htOption = htOption;
-  this._elCanvas = createCanvas(htOption.size, htOption.size);
-  this._oContext = this._elCanvas.getContext('2d');
+  this._elSvg = SVG('logo-canvas').size(800, 800);
+  this._oContext = this._elSvg.getContext('2d');
   this._bIsPainted = false;
   this._bSupportDataURI = null;
   this._callback = htOption.callback;
@@ -340,21 +340,21 @@ Drawing.prototype.draw = function(oQRCode) {
   let _fCanvas = createCanvas(rawSize, rawSize);
   let _fContext = _fCanvas.getContext('2d');
   _fContext.drawImage(_bkgCanvas, 0, 0, rawSize, rawSize);
-  this._elCanvas = _bkgCanvas;
+  this._elSvg = _bkgCanvas;
 
   // Painting work completed
   this._bIsPainted = true;
   if (this._callback !== undefined) {
-    this._callback(this._elCanvas.toDataURL());
+    this._callback(this._elSvg.toDataURL());
   }
   if (this._bindElement !== undefined) {
     try {
       var el = document.getElementById(this._bindElement);
       if (el.nodeName === 'IMG') {
-        el.src = this._elCanvas.toDataURL();
+        el.src = this._elSvg.toDataURL();
       } else {
         var elStyle = el.style;
-        elStyle['background-image'] = 'url(' + this._elCanvas.toDataURL() + ')';
+        elStyle['background-image'] = 'url(' + this._elSvg.toDataURL() + ')';
         elStyle['background-size'] = 'contain';
         elStyle['background-repeat'] = 'no-repeat';
       }
@@ -369,7 +369,7 @@ Drawing.prototype.isPainted = function() {
 };
 
 Drawing.prototype.clear = function() {
-  this._oContext.clearRect(0, 0, this._elCanvas.width, this._elCanvas.height);
+  this._oContext.clearRect(0, 0, this._elSvg.width, this._elSvg.height);
   this._bIsPainted = false;
 };
 
