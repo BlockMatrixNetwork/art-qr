@@ -23,9 +23,9 @@ Drawing.prototype.draw = function(oQRCode) {
     rawMargin = 0;
   }
 
-  var margin = Math.ceil(rawMargin);
+  var margin = rawMargin;
   var rawViewportSize = rawSize - 2 * rawMargin;
-  var nSize = Math.ceil(rawViewportSize / (nCount + 1));
+  var nSize = Math.ceil(rawViewportSize / nCount);
   var viewportSize = nSize * nCount;
   var size = viewportSize + 2 * margin;
 
@@ -38,7 +38,6 @@ Drawing.prototype.draw = function(oQRCode) {
   if (dotScale <= 0 || dotScale > 1) {
     throw new Error('Scale should be in range (0, 1).');
   }
-
   // Leave room for margin
   _oContext.save();
   _oContext.translate(margin, margin);
@@ -46,19 +45,20 @@ Drawing.prototype.draw = function(oQRCode) {
   var xyOffset = (1 - dotScale) * 0.5;
   let logoSize = 0;
   let logoX = 0;
+  let logoScale = _htOption.logoScale;
+  let logoMargin = _htOption.logoMargin;
   if (_htOption.logoImage !== undefined) {
-    let logoScale = _htOption.logoScale;
-    let logoMargin = _htOption.logoMargin;
     if (logoScale <= 0 || logoScale >= 1.0) {
       logoScale = 0.2;
     }
-    if (logoMargin < 0) {
-      logoMargin = 0;
-    }
 
     logoSize = viewportSize * logoScale;
-    logoX = 0.5 * (size - logoSize);
+    logoX = 0.5 * (viewportSize - logoSize);
+    if (logoMargin <= 0) {
+      logoMargin = logoSize * 0.2;
+    }
   }
+
   for (let row = 0; row < nCount; row++) {
     for (let col = 0; col < nCount; col++) {
       let bIsDark = oQRCode.isDark(row, col);
@@ -71,10 +71,10 @@ Drawing.prototype.draw = function(oQRCode) {
       let isImgOvr = false;
       if (_htOption.logoImage) {
         isImgOvr =
-          nSize * (col + 1) > logoX - nSize &&
-          nSize * (col + 1) < logoX + logoSize + nSize &&
-          (nSize * (row + 1) > logoX - nSize &&
-            nSize * (row + 1) < logoX + logoSize + nSize);
+          nSize * col + logoMargin > logoX &&
+          nSize * col - logoMargin < logoX + logoSize &&
+          (nSize * row + logoMargin > logoX &&
+            nSize * row - logoMargin < logoX + logoSize);
       }
       let bProtected = isBlkPosCtr || isImgOvr;
 
@@ -167,46 +167,30 @@ Drawing.prototype.draw = function(oQRCode) {
 
   // Drawing logo
   if (_htOption.logoImage !== undefined) {
-    let logoScale = _htOption.logoScale;
-    let logoMargin = _htOption.logoMargin;
     let logoCornerRadius = _htOption.logoCornerRadius;
-    if (logoScale <= 0 || logoScale >= 1.0) {
-      logoScale = 0.2;
-    }
-    if (logoMargin < 0) {
-      logoMargin = 0;
-    }
-    if (logoCornerRadius < 0) {
-      logoCornerRadius = 0;
+    if (typeof logoCornerRadius !== 'number' || logoCornerRadius < 0) {
+      logoCornerRadius = logoSize / 2;
+    } else {
+      logoCornerRadius = parseInt(logoCornerRadius);
     }
     _bContext.save();
 
-    const logoSize = viewportSize * logoScale;
-    const x = 0.5 * (size - logoSize);
-    const y = x;
-    logoCornerRadius = logoSize / 2;
-
     _prepareRoundedCornerClip(
       _bContext,
-      x - logoMargin,
-      y - logoMargin,
-      logoSize + 2 * logoMargin,
-      logoSize + 2 * logoMargin,
-      logoCornerRadius
-    );
-    _bContext.clip();
-    _bContext.fillStyle = '#FFFFFF';
-    _bContext.fill();
-    _prepareRoundedCornerClip(
-      _bContext,
-      x,
-      y,
+      logoX + margin,
+      logoX + margin,
       logoSize,
       logoSize,
       logoCornerRadius
     );
     _bContext.clip();
-    _bContext.drawImage(_htOption.logoImage, x, y, logoSize, logoSize);
+    _bContext.drawImage(
+      _htOption.logoImage,
+      logoX + margin,
+      logoX + margin,
+      logoSize,
+      logoSize
+    );
     _bContext.restore();
     if (_htOption.logoService) {
       _bContext.save();
@@ -215,8 +199,8 @@ Drawing.prototype.draw = function(oQRCode) {
 
       _roundRect(
         _bContext,
-        x + logoSize - logoMargin - serviceSize,
-        y + logoSize - logoMargin - serviceSize,
+        logoX + margin + logoSize - serviceSize,
+        logoX + margin + logoSize - serviceSize,
         serviceSize + serviceMargin * 2,
         serviceSize / 2 + serviceMargin * 2
       );
@@ -225,16 +209,16 @@ Drawing.prototype.draw = function(oQRCode) {
 
       _roundRect(
         _bContext,
-        x + logoSize - logoMargin - serviceSize + serviceMargin,
-        y + logoSize - logoMargin - serviceSize + serviceMargin,
+        logoX + margin + logoSize - serviceSize + serviceMargin,
+        logoX + margin + logoSize - serviceSize + serviceMargin,
         serviceSize,
         serviceSize / 2 + serviceMargin
       );
       _bContext.clip();
       _bContext.drawImage(
         _htOption.logoService,
-        x + logoSize - logoMargin - serviceSize + serviceMargin,
-        y + logoSize - logoMargin - serviceSize + serviceMargin,
+        logoX + margin + logoSize - serviceSize + serviceMargin,
+        logoX + margin + logoSize - serviceSize + serviceMargin,
         serviceSize,
         serviceSize
       );
@@ -245,7 +229,7 @@ Drawing.prototype.draw = function(oQRCode) {
   // Fill background to white
   _bContext.restore();
   _bContext.globalCompositeOperation = 'destination-over';
-  _roundRect(_bContext, 0, 0, size, 15);
+  _roundRect(_bContext, 0, 0, size, margin * 2);
   _bContext.fillStyle = '#FFFFFF';
   _bContext.fill();
 
@@ -286,14 +270,6 @@ Drawing.prototype.isPainted = function() {
 Drawing.prototype.clear = function() {
   this._oContext.clearRect(0, 0, this._elCanvas.width, this._elCanvas.height);
   this._bIsPainted = false;
-};
-
-Drawing.prototype.round = function(nNumber) {
-  if (!nNumber) {
-    return nNumber;
-  }
-
-  return Math.floor(nNumber * 1000) / 1000;
 };
 
 function _prepareRoundedCornerClip(ctx, x, y, w, h, r) {
@@ -399,7 +375,7 @@ AwesomeQRCode.prototype.create = function(vOption) {
     backgroundColor: '#ffffff',
     logoImage: undefined,
     logoScale: 0.2,
-    logoMargin: 5,
+    logoMargin: 0,
     logoService: false,
     dotScale: 0.35,
     callback: undefined,
