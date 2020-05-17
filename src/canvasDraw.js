@@ -1,4 +1,4 @@
-const { createCanvas } = require('canvas');
+import { createCanvas } from 'canvas';
 
 function _prepareRoundedCornerClip(ctx, x, y, w, h, r) {
   ctx.beginPath();

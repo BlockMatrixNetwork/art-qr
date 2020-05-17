@@ -1,98 +1,13 @@
 import { SVG } from '@svgdotjs/svg.js';
-
-function _prepareRoundedCornerClip(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-function _fillRect(canvas, x, y, w, h, blockStyle) {
-  if (blockStyle === undefined || blockStyle === 'square') {
-    canvas.fillRect(x, y, w, h);
-  } else if (blockStyle === 'circle') {
-    let centerX = x + w / 2;
-    let centerY = y + h / 2;
-    let radius = h / 2;
-    canvas.beginPath();
-    canvas.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
-    canvas.fill();
-  }
-}
-
-/**
- * Draws a rounded rectangle using the current state of the canvas.
- * If you omit the last three params, it will draw a rectangle
- * outline with a 5 pixel border radius
- * @param {CanvasRenderingContext2D} ctx
- * @param {Number} x The top left x coordinate
- * @param {Number} y The top left y coordinate
- * @param {Number} size The width of the rectangle
- * @param {Number} [radius = 5] The corner radius; It can also be an object
- *                 to specify different radii for corners
- */
-function _roundRect(ctx, x, y, size, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + size - radius, y);
-  ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
-  ctx.lineTo(x + size, y + size - radius);
-  ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
-  ctx.lineTo(x + radius, y + size);
-  ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-/**
- * Draws a eye of qr code.
- * @param {CanvasRenderingContext2D} ctx
- * @param {Number} nSize size of QR code dot
- * @param {Number} x The top left x coordinate
- * @param {Number} y The top left y coordinate
- * @param {String} [dark] Whether to color fill of rectangle.
- * @param {String} [white] Whether to color white of rectangle.
- */
-function _drawEye(ctx, nSize, x, y, dark, white) {
-  let xe, ye, size, radius;
-  ctx.save();
-  ctx.globalCompositeOperation = 'xor';
-  radius = nSize * 2;
-  xe = x;
-  ye = y;
-  size = nSize * 7;
-  _roundRect(ctx, xe, ye, size, radius);
-  ctx.fillStyle = dark;
-  ctx.fill();
-
-  radius = nSize;
-  xe = x + nSize * 1;
-  ye = y + nSize * 1;
-  size = nSize * 5;
-
-  _roundRect(ctx, xe, ye, size, radius);
-  ctx.fillStyle = white;
-  ctx.fill();
-
-  ctx.restore();
-  radius = nSize / 2;
-  xe = x + nSize * 2;
-  ye = y + nSize * 2;
-  size = nSize * 3;
-  _roundRect(ctx, xe, ye, size, radius);
-  ctx.fillStyle = dark;
-  ctx.fill();
-}
+const { createCanvas } = require('canvas');
 
 function Drawing(htOption) {
   this._bIsPainted = false;
   this._htOption = htOption;
-  this._elSvg = SVG('logo-canvas').size(800, 800);
-  this._oContext = this._elSvg.getContext('2d');
+  this._elSvg = SVG();
+  this._elSvgDefs = this._elSvg.defs();
+  this._elCanvas = createCanvas(htOption.size, htOption.size);
+  this._oContext = this._elCanvas.getContext('2d');
   this._bIsPainted = false;
   this._bSupportDataURI = null;
   this._callback = htOption.callback;
@@ -113,6 +28,24 @@ Drawing.prototype.draw = function(oQRCode) {
   var nSize = Math.ceil(rawViewportSize / (nCount + 1));
   var viewportSize = nSize * nCount;
   var size = viewportSize + 2 * margin;
+
+  // Create background def
+
+  var gradient = this._elSvg.gradient('linear', function(add) {
+    const bgC = _htOption.backgroundColor;
+    if (
+      typeof _htOption.backgroundColor === 'object' &&
+      _htOption.backgroundColor.type
+    ) {
+      for (let i = 0, l = bgC.colors.length; i < l; i++) {
+        add.stop(bgC.stops[i] / 100, bgC.colors[i]);
+      }
+    } else {
+      add.stop(0, _htOption.backgroundColor);
+    }
+  });
+
+  this._elSvgDefs.add(gradient);
 
   var _tCanvas = createCanvas(size, size);
   var _oContext = _tCanvas.getContext('2d');
@@ -340,24 +273,17 @@ Drawing.prototype.draw = function(oQRCode) {
   let _fCanvas = createCanvas(rawSize, rawSize);
   let _fContext = _fCanvas.getContext('2d');
   _fContext.drawImage(_bkgCanvas, 0, 0, rawSize, rawSize);
-  this._elSvg = _bkgCanvas;
+  this._elCanvas = _bkgCanvas;
 
   // Painting work completed
   this._bIsPainted = true;
   if (this._callback !== undefined) {
-    this._callback(this._elSvg.toDataURL());
+    this._callback(this._elSvg);
   }
   if (this._bindElement !== undefined) {
     try {
       var el = document.getElementById(this._bindElement);
-      if (el.nodeName === 'IMG') {
-        el.src = this._elSvg.toDataURL();
-      } else {
-        var elStyle = el.style;
-        elStyle['background-image'] = 'url(' + this._elSvg.toDataURL() + ')';
-        elStyle['background-size'] = 'contain';
-        elStyle['background-repeat'] = 'no-repeat';
-      }
+      el.innerHTML = this._elSvg;
     } catch (e) {
       console.error(e);
     }
@@ -369,8 +295,97 @@ Drawing.prototype.isPainted = function() {
 };
 
 Drawing.prototype.clear = function() {
-  this._oContext.clearRect(0, 0, this._elSvg.width, this._elSvg.height);
+  this._elSvg.clear();
+  this._oContext.clearRect(0, 0, this._elCanvas.width, this._elCanvas.height);
   this._bIsPainted = false;
 };
+
+function _prepareRoundedCornerClip(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function _fillRect(canvas, x, y, w, h, blockStyle) {
+  if (blockStyle === undefined || blockStyle === 'square') {
+    canvas.fillRect(x, y, w, h);
+  } else if (blockStyle === 'circle') {
+    let centerX = x + w / 2;
+    let centerY = y + h / 2;
+    let radius = h / 2;
+    canvas.beginPath();
+    canvas.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+    canvas.fill();
+  }
+}
+
+/**
+ * Draws a rounded rectangle using the current state of the canvas.
+ * If you omit the last three params, it will draw a rectangle
+ * outline with a 5 pixel border radius
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Number} x The top left x coordinate
+ * @param {Number} y The top left y coordinate
+ * @param {Number} size The width of the rectangle
+ * @param {Number} [radius = 5] The corner radius; It can also be an object
+ *                 to specify different radii for corners
+ */
+function _roundRect(ctx, x, y, size, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + size - radius, y);
+  ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
+  ctx.lineTo(x + size, y + size - radius);
+  ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
+  ctx.lineTo(x + radius, y + size);
+  ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+/**
+ * Draws a eye of qr code.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Number} nSize size of QR code dot
+ * @param {Number} x The top left x coordinate
+ * @param {Number} y The top left y coordinate
+ * @param {String} [dark] Whether to color fill of rectangle.
+ * @param {String} [white] Whether to color white of rectangle.
+ */
+function _drawEye(ctx, nSize, x, y, dark, white) {
+  let xe, ye, size, radius;
+  ctx.save();
+  ctx.globalCompositeOperation = 'xor';
+  radius = nSize * 2;
+  xe = x;
+  ye = y;
+  size = nSize * 7;
+  _roundRect(ctx, xe, ye, size, radius);
+  ctx.fillStyle = dark;
+  ctx.fill();
+
+  radius = nSize;
+  xe = x + nSize * 1;
+  ye = y + nSize * 1;
+  size = nSize * 5;
+
+  _roundRect(ctx, xe, ye, size, radius);
+  ctx.fillStyle = white;
+  ctx.fill();
+
+  ctx.restore();
+  radius = nSize / 2;
+  xe = x + nSize * 2;
+  ye = y + nSize * 2;
+  size = nSize * 3;
+  _roundRect(ctx, xe, ye, size, radius);
+  ctx.fillStyle = dark;
+  ctx.fill();
+}
 
 export default Drawing;
