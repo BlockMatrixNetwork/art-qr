@@ -25,7 +25,7 @@ Drawing.prototype.draw = function(oQRCode) {
 
   var margin = rawMargin;
   var rawViewportSize = rawSize - 2 * rawMargin;
-  var nSize = Math.ceil(rawViewportSize / nCount);
+  var nSize = rawViewportSize / nCount;
   var viewportSize = nSize * nCount;
   var size = viewportSize + 2 * margin;
 
