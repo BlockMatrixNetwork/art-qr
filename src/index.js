@@ -24,6 +24,7 @@ Drawing.prototype.draw = function(oQRCode) {
   }
 
   var margin = rawMargin;
+  var borderRadius = _htOption.borderRadius;
   var rawViewportSize = rawSize - 2 * rawMargin;
   var nSize = rawViewportSize / nCount;
   var viewportSize = nSize * nCount;
@@ -229,7 +230,7 @@ Drawing.prototype.draw = function(oQRCode) {
   // Fill background to white
   _bContext.restore();
   _bContext.globalCompositeOperation = 'destination-over';
-  _roundRect(_bContext, 0, 0, size, margin * 2);
+  _roundRect(_bContext, 0, 0, size, borderRadius);
   _bContext.fillStyle = '#FFFFFF';
   _bContext.fill();
 
@@ -366,6 +367,7 @@ AwesomeQRCode.prototype.create = function(vOption) {
   this._htOption = {
     size: 320,
     margin: 20,
+    borderRadius: 20,
     typeNumber: 4,
     colorEyes: undefined,
     colorDark: '#000000',
