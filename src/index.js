@@ -134,7 +134,22 @@ Drawing.prototype.draw = function(oQRCode) {
     typeof _htOption.backgroundColor === 'object' &&
     _htOption.backgroundColor.type
   ) {
-    let gradient = _oContext.createLinearGradient(0, 0, size, size);
+    let gradient;
+    if (_htOption.backgroundColor.type === 'linear') {
+      switch (_htOption.backgroundColor.direction) {
+        case 'top-right':
+          gradient = _oContext.createLinearGradient(0, size, size, 0);
+          break;
+        case 'bottom-left':
+          gradient = _oContext.createLinearGradient(size, 0, 0, size);
+          break;
+        case 'top-left':
+          gradient = _oContext.createLinearGradient(size, size, 0, 0);
+          break;
+        default:
+          gradient = _oContext.createLinearGradient(0, 0, size, size);
+      }
+    }
     const bgC = _htOption.backgroundColor;
     for (let i = 0, l = bgC.colors.length; i < l; i++) {
       gradient.addColorStop(bgC.stops[i] / 100, bgC.colors[i]);
